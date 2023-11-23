@@ -1,46 +1,216 @@
 package com.degref.variocard
 
+import android.content.Intent
+import android.nfc.NdefMessage
+import android.nfc.NdefRecord
+import android.nfc.NfcAdapter
+import android.nfc.NfcEvent
+import android.nfc.Tag
 import android.os.Bundle
+import android.util.Log
+import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.material3.Button
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextField
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.unit.dp
 import com.degref.variocard.ui.theme.VarioCardTheme
 
-class MainActivity : ComponentActivity() {
+
+class MainActivity : ComponentActivity(), NfcAdapter.OnNdefPushCompleteCallback {
+
+    private var sendingMessage by mutableStateOf("No message sent")
+    private var receivedMessage by mutableStateOf("No message received")
+    private var isSenderActive by mutableStateOf(true)
+
+    @OptIn(ExperimentalComposeUiApi::class)
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContent {
-            VarioCardTheme {
-                // A surface container using the 'background' color from the theme
+            VarioCardTheme() {
                 Surface(
                     modifier = Modifier.fillMaxSize(),
                     color = MaterialTheme.colorScheme.background
                 ) {
-                    Greeting("Android")
+                    MainScreen()
                 }
             }
         }
+
+        // Set up NFC for HCE
+        val nfcAdapter = NfcAdapter.getDefaultAdapter(this)
+        nfcAdapter?.let {
+            if (!it.isEnabled) {
+                showToast("NFC is not enabled")
+            } else {
+                startReaderMode()
+            }
+        }
     }
-}
 
-@Composable
-fun Greeting(name: String, modifier: Modifier = Modifier) {
-    Text(
-        text = "Hello $name!",
-        modifier = modifier
-    )
-}
+    @OptIn(ExperimentalMaterial3Api::class)
+    @Composable
+    fun MainScreen() {
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(16.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.Center
+        ) {
+            // Button to toggle between sender and reader modes
+            Button(onClick = {
+                toggleNfcMode()
+            }) {
+                Text(if (isSenderActive) "Sending" else "Reading")
+            }
 
-@Preview(showBackground = true)
-@Composable
-fun GreetingPreview() {
-    VarioCardTheme {
-        Greeting("Android")
+            // Input field for entering the message to send
+            Spacer(modifier = Modifier.height(16.dp))
+            TextField(
+                value = sendingMessage,
+                onValueChange = {
+                    sendingMessage = it
+                },
+                label = { Text("Enter your message") },
+                modifier = Modifier
+                    .fillMaxWidth()
+            )
+
+            // Button to send and receive the message
+            Spacer(modifier = Modifier.height(16.dp))
+
+            // Display the received message
+            Spacer(modifier = Modifier.height(16.dp))
+            Text(text = "Received Message:")
+            Text(text = receivedMessage, style = MaterialTheme.typography.bodyMedium)
+        }
+    }
+
+    private fun startReaderMode() {
+        val nfcAdapter = NfcAdapter.getDefaultAdapter(this)
+        nfcAdapter?.enableReaderMode(
+            this,
+            NfcCallback(),
+            NfcAdapter.FLAG_READER_NFC_A or NfcAdapter.FLAG_READER_SKIP_NDEF_CHECK,
+            null
+        )
+    }
+
+    private fun stopReaderMode() {
+        val nfcAdapter = NfcAdapter.getDefaultAdapter(this)
+        nfcAdapter?.disableReaderMode(this)
+    }
+
+    private fun toggleNfcMode() {
+        // Toggle between sender and reader modes
+        if (isSenderActive) {
+            stopReaderMode()
+        } else {
+            startReaderMode()
+        }
+        isSenderActive = !isSenderActive
+    }
+
+    private fun sendNfcMessage(message: String) {
+        // Create NDEF message with the message to send
+        val ndefRecord = NdefRecord.createTextRecord("text/plain", message)
+        val ndefMessage = NdefMessage(arrayOf(ndefRecord))
+
+        val sendIntent = Intent(this, VarioCardApduService::class.java)
+        sendIntent.putExtra("ndefMessage", ndefMessage)
+        startService(sendIntent)
+    }
+
+    private fun showToast(message: String) {
+        runOnUiThread {
+            Toast.makeText(this, message, Toast.LENGTH_SHORT).show()
+        }
+    }
+
+    override fun onNdefPushComplete(event: NfcEvent?) {
+        // Called when the NDEF push (send) operation is complete
+        showToast("NDEF push complete")
+        // Stop sender mode after sending a message
+        if (isSenderActive) {
+            stopReaderMode()
+        }
+    }
+
+    override fun onResume() {
+        super.onResume()
+        if (!isSenderActive) {
+            startReaderMode()
+        } else {
+            stopReaderMode()
+        }
+    }
+
+    override fun onPause() {
+        super.onPause()
+        NfcAdapter.getDefaultAdapter(this)?.disableForegroundDispatch(this)
+        // Stop sender mode when the activity is paused
+        if (isSenderActive) {
+            stopReaderMode()
+        }
+    }
+
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        handleNfcIntent(intent)
+    }
+
+    private fun handleNfcIntent(intent: Intent) {
+        Log.d("aaaaaaaaaaaaaaa", "${intent.action}")
+        if (intent.action == NfcAdapter.ACTION_NDEF_DISCOVERED) {
+            // Extract NDEF message from the intent
+            val rawMessages = intent.getParcelableArrayExtra(NfcAdapter.EXTRA_NDEF_MESSAGES)
+            if (!rawMessages.isNullOrEmpty()) {
+                val messages = rawMessages.map { it as NdefMessage }
+                val payload = String(messages[0].records[0].payload)
+                Log.d("aaaaaaaaaaaaaaa", "$payload")
+                sendNfcMessage(payload)
+            }
+        }
+    }
+
+    private inner class NfcCallback : NfcAdapter.ReaderCallback {
+        override fun onTagDiscovered(tag: Tag?) {
+            if (isSenderActive) {
+                showToast("NFC tag discovered in sender mode")
+                Log.d("QUM", "$tag")
+                sendNfcMessage(sendingMessage)
+            } else {
+                // Handle the command received from the sender
+                showToast("NFC tag discovered in reader mode")
+                Log.d("QUM22", "$tag")
+            }
+        }
+    }
+
+    private fun updateReceivedMessage(message: String) {
+        showToast("HCE Message Received: $message")
+        // Update the received message in the Compose UI
+        runOnUiThread {
+            receivedMessage = message
+        }
     }
 }
