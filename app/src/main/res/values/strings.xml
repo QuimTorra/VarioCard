@@ -1,3 +1,4 @@
 <resources>
     <string name="app_name">VarioCard</string>
+    <string name="tips">1. Both the file sender and the receiver need to turn on Wifi\n2. The file receiver first creates a group, and the file sender searches for the device and clicks to connect\n3. After the connection is successful, the file receiver first starts monitoring, and then the file is sent. Then go to the terminal and select the files you want to send.</string>
 </resources>
