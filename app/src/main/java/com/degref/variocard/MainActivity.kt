@@ -1,12 +1,17 @@
 package com.degref.variocard
 
 import android.Manifest
+import android.app.Activity
+import android.app.ProgressDialog
+import android.content.Intent
 import android.content.pm.PackageManager
 import android.os.Build
 import android.os.Bundle
 import android.view.View
+import android.widget.Toast
 import androidx.activity.compose.setContent
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.appcompat.app.AppCompatActivity
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
@@ -55,7 +60,7 @@ class MainActivity : BaseActivity() {
         }
         findViewById<View>(R.id.btnSender).setOnClickListener {
             if (allPermissionGranted()) {
-                startActivity(FileSenderActivity::class.java)
+                this.startActivity(FileSenderActivity::class.java)
             } else {
                 onPermissionDenied()
             }
