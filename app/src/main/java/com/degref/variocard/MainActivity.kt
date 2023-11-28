@@ -6,6 +6,7 @@ import android.nfc.NdefRecord
 import android.nfc.NfcAdapter
 import android.nfc.NfcEvent
 import android.nfc.Tag
+import android.nfc.tech.Ndef
 import android.os.Bundle
 import android.util.Log
 import android.widget.Toast
@@ -32,10 +33,12 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import com.degref.variocard.Utils.parseTextrecordPayload
 import com.degref.variocard.ui.theme.VarioCardTheme
+import java.util.Arrays
 
 
-class MainActivity : ComponentActivity(), NfcAdapter.OnNdefPushCompleteCallback {
+class MainActivity : ComponentActivity() {
 
     private var sendingMessage by mutableStateOf("No message sent")
     private var receivedMessage by mutableStateOf("No message received")
@@ -107,37 +110,44 @@ class MainActivity : ComponentActivity(), NfcAdapter.OnNdefPushCompleteCallback 
 
     private fun startReaderMode() {
         val nfcAdapter = NfcAdapter.getDefaultAdapter(this)
+        val options = Bundle()
+        // Work around for some broken Nfc firmware implementations that poll the card too fast
+        options.putInt(NfcAdapter.EXTRA_READER_PRESENCE_CHECK_DELAY, 1000)
         nfcAdapter?.enableReaderMode(
             this,
             NfcCallback(),
-            NfcAdapter.FLAG_READER_NFC_A or NfcAdapter.FLAG_READER_SKIP_NDEF_CHECK,
-            null
+            NfcAdapter.FLAG_READER_NFC_A or
+                    NfcAdapter.FLAG_READER_NFC_B or
+                    NfcAdapter.FLAG_READER_NFC_F or
+                    NfcAdapter.FLAG_READER_NFC_V or
+                    NfcAdapter.FLAG_READER_NFC_BARCODE or
+                    NfcAdapter.FLAG_READER_NO_PLATFORM_SOUNDS,
+            options
         )
     }
 
     private fun stopReaderMode() {
         val nfcAdapter = NfcAdapter.getDefaultAdapter(this)
         nfcAdapter?.disableReaderMode(this)
+        Log.d("MONDONGO", "desactivar reader mode")
     }
 
     private fun toggleNfcMode() {
         // Toggle between sender and reader modes
+        isSenderActive = !isSenderActive
         if (isSenderActive) {
             stopReaderMode()
+            sendNfcMessage(sendingMessage)
         } else {
             startReaderMode()
         }
-        isSenderActive = !isSenderActive
     }
 
     private fun sendNfcMessage(message: String) {
-        // Create NDEF message with the message to send
-        val ndefRecord = NdefRecord.createTextRecord("text/plain", message)
-        val ndefMessage = NdefMessage(arrayOf(ndefRecord))
-
         val sendIntent = Intent(this, VarioCardApduService::class.java)
-        sendIntent.putExtra("ndefMessage", ndefMessage)
+        sendIntent.putExtra("ndefMessage", message)
         startService(sendIntent)
+        Log.d("MONDONGO", "sending")
     }
 
     private fun showToast(message: String) {
@@ -146,14 +156,14 @@ class MainActivity : ComponentActivity(), NfcAdapter.OnNdefPushCompleteCallback 
         }
     }
 
-    override fun onNdefPushComplete(event: NfcEvent?) {
-        // Called when the NDEF push (send) operation is complete
-        showToast("NDEF push complete")
-        // Stop sender mode after sending a message
-        if (isSenderActive) {
-            stopReaderMode()
-        }
-    }
+//    override fun onNdefPushComplete(event: NfcEvent?) {
+//        // Called when the NDEF push (send) operation is complete
+//        showToast("NDEF push complete")
+//        // Stop sender mode after sending a message
+//        if (isSenderActive) {
+//            stopReaderMode()
+//        }
+//    }
 
     override fun onResume() {
         super.onResume()
@@ -168,42 +178,65 @@ class MainActivity : ComponentActivity(), NfcAdapter.OnNdefPushCompleteCallback 
         super.onPause()
         NfcAdapter.getDefaultAdapter(this)?.disableForegroundDispatch(this)
         // Stop sender mode when the activity is paused
-        if (isSenderActive) {
+        if (!isSenderActive) {
             stopReaderMode()
         }
     }
 
-    override fun onNewIntent(intent: Intent) {
-        super.onNewIntent(intent)
-        handleNfcIntent(intent)
-    }
-
-    private fun handleNfcIntent(intent: Intent) {
-        Log.d("aaaaaaaaaaaaaaa", "${intent.action}")
-        if (intent.action == NfcAdapter.ACTION_NDEF_DISCOVERED) {
-            // Extract NDEF message from the intent
-            val rawMessages = intent.getParcelableArrayExtra(NfcAdapter.EXTRA_NDEF_MESSAGES)
-            if (!rawMessages.isNullOrEmpty()) {
-                val messages = rawMessages.map { it as NdefMessage }
-                val payload = String(messages[0].records[0].payload)
-                Log.d("aaaaaaaaaaaaaaa", "$payload")
-                sendNfcMessage(payload)
-            }
-        }
-    }
+//    override fun onNewIntent(intent: Intent) {
+//        super.onNewIntent(intent)
+//        handleNfcIntent(intent)
+//    }
+//
+//    private fun handleNfcIntent(intent: Intent) {
+//        Log.d("aaaaaaaaaaaaaaa", "${intent.action}")
+//        if (intent.action == NfcAdapter.ACTION_NDEF_DISCOVERED) {
+//            // Extract NDEF message from the intent
+//            val rawMessages = intent.getParcelableArrayExtra(NfcAdapter.EXTRA_NDEF_MESSAGES)
+//            if (!rawMessages.isNullOrEmpty()) {
+//                val messages = rawMessages.map { it as NdefMessage }
+//                val payload = String(messages[0].records[0].payload)
+//                Log.d("aaaaaaaaaaaaaaa", "$payload")
+//                sendNfcMessage(payload)
+//            }
+//        }
+//    }
 
     private inner class NfcCallback : NfcAdapter.ReaderCallback {
         override fun onTagDiscovered(tag: Tag?) {
             if (isSenderActive) {
-                showToast("NFC tag discovered in sender mode")
-                Log.d("QUM", "$tag")
+                showToast("NFC tag discovered while sending")
+                Log.d("MONDONGO", "Mi tag: $tag")
                 sendNfcMessage(sendingMessage)
             } else {
-                // Handle the command received from the sender
-                showToast("NFC tag discovered in reader mode")
-                Log.d("QUM22", "$tag")
+                showToast("Read a tag :)")
+                val mNdef = Ndef.get(tag)
+                Log.d("MONDONGO", "Atontag: $tag")
+                if (mNdef != null) {
+                    val mNdefMessage = mNdef.cachedNdefMessage
+                    val record = mNdefMessage.records
+                    val ndefRecordsCount = record.size
+                    if (ndefRecordsCount > 0) {
+                        var ndefText = ""
+                        for (i in 0 until ndefRecordsCount) {
+                            val ndefTnf = record[i].tnf
+                            val ndefType = record[i].type
+                            val ndefPayload = record[i].payload
+                            if (ndefTnf == NdefRecord.TNF_WELL_KNOWN && Arrays.equals(ndefType, NdefRecord.RTD_TEXT)) {
+                                ndefText = """$ndefText
+                                                rec: $i Well known Text payload
+                                                ${String(ndefPayload)}""" + " \n"
+                                ndefText = """$ndefText${parseTextrecordPayload(ndefPayload)}"""
+                            }
+                            val finalNdefText = ndefText
+                            Log.d("MONDONGO", finalNdefText)
+                        }
+                    }
+                }
+
             }
         }
+
     }
 
     private fun updateReceivedMessage(message: String) {
