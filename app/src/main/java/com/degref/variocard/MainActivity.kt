@@ -1,6 +1,8 @@
 package com.degref.variocard
 
+import android.content.Context
 import android.content.Intent
+import android.net.wifi.WifiManager
 import android.nfc.NdefMessage
 import android.nfc.NdefRecord
 import android.nfc.NfcAdapter
@@ -32,6 +34,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.degref.variocard.Utils.parseTextrecordPayload
 import com.degref.variocard.ui.theme.VarioCardTheme
@@ -70,6 +73,7 @@ class MainActivity : ComponentActivity() {
     }
 
     @OptIn(ExperimentalMaterial3Api::class)
+    @Preview
     @Composable
     fun MainScreen() {
         Column(
@@ -81,6 +85,7 @@ class MainActivity : ComponentActivity() {
         ) {
             // Button to toggle between sender and reader modes
             Button(onClick = {
+                Log.d("MONDONGO", getMac())
                 toggleNfcMode()
             }) {
                 Text(if (isSenderActive) "Sending" else "Reading")
@@ -106,6 +111,11 @@ class MainActivity : ComponentActivity() {
             Text(text = "Received Message:")
             Text(text = receivedMessage, style = MaterialTheme.typography.bodyMedium)
         }
+    }
+    fun getMac(): String {
+        val manager = this.getSystemService(Context.WIFI_SERVICE) as WifiManager
+        val info = manager.connectionInfo
+        return info.macAddress.toUpperCase()
     }
 
     private fun startReaderMode() {
