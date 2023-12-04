@@ -1,14 +1,24 @@
 package com.degref.variocard
 
+import android.Manifest
+import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
+import android.content.IntentFilter
+import android.content.pm.PackageManager
+import android.net.ConnectivityManager
+import android.net.Network
+import android.net.NetworkCapabilities
+import android.net.wifi.WifiInfo
 import android.net.wifi.WifiManager
+import android.net.wifi.p2p.WifiP2pManager
 import android.nfc.NdefMessage
 import android.nfc.NdefRecord
 import android.nfc.NfcAdapter
 import android.nfc.NfcEvent
 import android.nfc.Tag
 import android.nfc.tech.Ndef
+import android.os.Build
 import android.os.Bundle
 import android.util.Log
 import android.widget.Toast
@@ -36,9 +46,12 @@ import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.core.app.ActivityCompat
 import com.degref.variocard.Utils.parseTextrecordPayload
 import com.degref.variocard.ui.theme.VarioCardTheme
+import java.net.NetworkInterface
 import java.util.Arrays
+import java.util.Collections
 
 
 class MainActivity : ComponentActivity() {
@@ -46,6 +59,11 @@ class MainActivity : ComponentActivity() {
     private var sendingMessage by mutableStateOf("No message sent")
     private var receivedMessage by mutableStateOf("No message received")
     private var isSenderActive by mutableStateOf(true)
+    private lateinit var wifiP2pManager: WifiP2pManager
+    private lateinit var channel: WifiP2pManager.Channel
+    private lateinit var wifiDirectReceiver: BroadcastReceiver
+    private lateinit var intentFilter: IntentFilter
+
 
     @OptIn(ExperimentalComposeUiApi::class)
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -60,6 +78,9 @@ class MainActivity : ComponentActivity() {
                 }
             }
         }
+        wifiP2pManager = getSystemService(Context.WIFI_P2P_SERVICE) as WifiP2pManager
+        channel = wifiP2pManager.initialize(this, mainLooper, null)
+        initializeWiFiDirectReceiver()
 
         // Set up NFC for HCE
         val nfcAdapter = NfcAdapter.getDefaultAdapter(this)
@@ -71,6 +92,26 @@ class MainActivity : ComponentActivity() {
             }
         }
     }
+
+    private fun initializeWiFiDirectReceiver() {
+        wifiDirectReceiver = WiFiDirectReceiver()
+        intentFilter = IntentFilter()
+
+        // Add necessary Wi-Fi Direct action filters
+        intentFilter.addAction(WifiP2pManager.WIFI_P2P_STATE_CHANGED_ACTION)
+        intentFilter.addAction(WifiP2pManager.WIFI_P2P_PEERS_CHANGED_ACTION)
+        intentFilter.addAction(WifiP2pManager.WIFI_P2P_CONNECTION_CHANGED_ACTION)
+        intentFilter.addAction(WifiP2pManager.WIFI_P2P_THIS_DEVICE_CHANGED_ACTION)
+
+        registerReceiver(wifiDirectReceiver, intentFilter)
+    }
+
+    override fun onDestroy() {
+        super.onDestroy()
+        unregisterReceiver(wifiDirectReceiver)
+    }
+
+
 
     @OptIn(ExperimentalMaterial3Api::class)
     @Preview
@@ -85,7 +126,6 @@ class MainActivity : ComponentActivity() {
         ) {
             // Button to toggle between sender and reader modes
             Button(onClick = {
-                Log.d("MONDONGO", getMac())
                 toggleNfcMode()
             }) {
                 Text(if (isSenderActive) "Sending" else "Reading")
@@ -111,11 +151,6 @@ class MainActivity : ComponentActivity() {
             Text(text = "Received Message:")
             Text(text = receivedMessage, style = MaterialTheme.typography.bodyMedium)
         }
-    }
-    fun getMac(): String {
-        val manager = this.getSystemService(Context.WIFI_SERVICE) as WifiManager
-        val info = manager.connectionInfo
-        return info.macAddress.toUpperCase()
     }
 
     private fun startReaderMode() {
@@ -147,7 +182,8 @@ class MainActivity : ComponentActivity() {
         isSenderActive = !isSenderActive
         if (isSenderActive) {
             stopReaderMode()
-            sendNfcMessage(sendingMessage)
+            Log.d("MONDONGO", Build.MODEL)
+            sendNfcMessage(Build.MODEL)
         } else {
             startReaderMode()
         }
@@ -157,7 +193,34 @@ class MainActivity : ComponentActivity() {
         val sendIntent = Intent(this, VarioCardApduService::class.java)
         sendIntent.putExtra("ndefMessage", message)
         startService(sendIntent)
-        Log.d("MONDONGO", "sending")
+        if (ActivityCompat.checkSelfPermission(
+                this,
+                Manifest.permission.ACCESS_FINE_LOCATION
+            ) != PackageManager.PERMISSION_GRANTED || ActivityCompat.checkSelfPermission(
+                this,
+                Manifest.permission.NEARBY_WIFI_DEVICES
+            ) != PackageManager.PERMISSION_GRANTED
+        ) {
+            Log.d("MONDONGO", "Permission said nonono")
+            // TODO: Consider calling
+            //    ActivityCompat#requestPermissions
+            // here to request the missing permissions, and then overriding
+            //   public void onRequestPermissionsResult(int requestCode, String[] permissions,
+            //                                          int[] grantResults)
+            // to handle the case where the user grants the permission. See the documentation
+            // for ActivityCompat#requestPermissions for more details.
+            return
+        }
+        wifiP2pManager.discoverPeers(channel, object : WifiP2pManager.ActionListener {
+            override fun onSuccess() {
+                // Discovery initiation successful
+                Log.d("MONDONGO", "Discovering devices")
+            }
+
+            override fun onFailure(reasonCode: Int) {
+                // Discovery initiation failed
+            }
+        })
     }
 
     private fun showToast(message: String) {
