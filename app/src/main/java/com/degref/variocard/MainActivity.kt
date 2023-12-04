@@ -11,6 +11,8 @@ import android.net.Network
 import android.net.NetworkCapabilities
 import android.net.wifi.WifiInfo
 import android.net.wifi.WifiManager
+import android.net.wifi.p2p.WifiP2pConfig
+import android.net.wifi.p2p.WifiP2pDeviceList
 import android.net.wifi.p2p.WifiP2pManager
 import android.nfc.NdefMessage
 import android.nfc.NdefRecord
@@ -229,15 +231,6 @@ class MainActivity : ComponentActivity() {
         }
     }
 
-//    override fun onNdefPushComplete(event: NfcEvent?) {
-//        // Called when the NDEF push (send) operation is complete
-//        showToast("NDEF push complete")
-//        // Stop sender mode after sending a message
-//        if (isSenderActive) {
-//            stopReaderMode()
-//        }
-//    }
-
     override fun onResume() {
         super.onResume()
         if (!isSenderActive) {
@@ -256,35 +249,58 @@ class MainActivity : ComponentActivity() {
         }
     }
 
-//    override fun onNewIntent(intent: Intent) {
-//        super.onNewIntent(intent)
-//        handleNfcIntent(intent)
-//    }
-//
-//    private fun handleNfcIntent(intent: Intent) {
-//        Log.d("aaaaaaaaaaaaaaa", "${intent.action}")
-//        if (intent.action == NfcAdapter.ACTION_NDEF_DISCOVERED) {
-//            // Extract NDEF message from the intent
-//            val rawMessages = intent.getParcelableArrayExtra(NfcAdapter.EXTRA_NDEF_MESSAGES)
-//            if (!rawMessages.isNullOrEmpty()) {
-//                val messages = rawMessages.map { it as NdefMessage }
-//                val payload = String(messages[0].records[0].payload)
-//                Log.d("aaaaaaaaaaaaaaa", "$payload")
-//                sendNfcMessage(payload)
-//            }
-//        }
-//    }
+    private fun connectWifiDirect(deviceName: String) {
+        if (ActivityCompat.checkSelfPermission(
+                this,
+                Manifest.permission.ACCESS_FINE_LOCATION
+            ) != PackageManager.PERMISSION_GRANTED || ActivityCompat.checkSelfPermission(
+                this,
+                Manifest.permission.NEARBY_WIFI_DEVICES
+            ) != PackageManager.PERMISSION_GRANTED
+        ) {
+            Log.d("MONDONGO", "I no permission")
+            // TODO: Consider calling
+            //    ActivityCompat#requestPermissions
+            // here to request the missing permissions, and then overriding
+            //   public void onRequestPermissionsResult(int requestCode, String[] permissions,
+            //                                          int[] grantResults)
+            // to handle the case where the user grants the permission. See the documentation
+            // for ActivityCompat#requestPermissions for more details.
+            return
+        }
+        wifiP2pManager.requestPeers(channel) { peers ->
+            // Filter peers to find Device A based on some criteria (e.g., device name)
+            val deviceA = peers.deviceList.firstOrNull { it.deviceName == "DeviceAName" }
+            if (deviceA != null) {
+                Log.d("MONDONGO", deviceA.deviceName)
+            }
+            else Log.d("MONDONGO", "Device is null :(")
+            // If Device A is found, initiate a Wi-Fi Direct connection
+            if (deviceA != null) {
+                val config = WifiP2pConfig()
+                config.deviceAddress = deviceA.deviceAddress
+
+                wifiP2pManager.connect(channel, config, object : WifiP2pManager.ActionListener {
+                    override fun onSuccess() {
+                        // Connection initiation successful
+                    }
+
+                    override fun onFailure(reasonCode: Int) {
+                        // Connection initiation failed
+                    }
+                })
+            }
+        }
+    }
 
     private inner class NfcCallback : NfcAdapter.ReaderCallback {
         override fun onTagDiscovered(tag: Tag?) {
             if (isSenderActive) {
                 showToast("NFC tag discovered while sending")
-                Log.d("MONDONGO", "Mi tag: $tag")
                 sendNfcMessage(sendingMessage)
             } else {
                 showToast("Read a tag :)")
                 val mNdef = Ndef.get(tag)
-                Log.d("MONDONGO", "Atontag: $tag")
                 if (mNdef != null) {
                     val mNdefMessage = mNdef.cachedNdefMessage
                     val record = mNdefMessage.records
@@ -296,27 +312,16 @@ class MainActivity : ComponentActivity() {
                             val ndefType = record[i].type
                             val ndefPayload = record[i].payload
                             if (ndefTnf == NdefRecord.TNF_WELL_KNOWN && Arrays.equals(ndefType, NdefRecord.RTD_TEXT)) {
-                                ndefText = """$ndefText
-                                                rec: $i Well known Text payload
-                                                ${String(ndefPayload)}""" + " \n"
                                 ndefText = """$ndefText${parseTextrecordPayload(ndefPayload)}"""
                             }
                             val finalNdefText = ndefText
                             Log.d("MONDONGO", finalNdefText)
+                            connectWifiDirect(finalNdefText)
                         }
                     }
                 }
-
             }
-        }
-
-    }
-
-    private fun updateReceivedMessage(message: String) {
-        showToast("HCE Message Received: $message")
-        // Update the received message in the Compose UI
-        runOnUiThread {
-            receivedMessage = message
         }
     }
 }
+
