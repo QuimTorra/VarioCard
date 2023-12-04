@@ -1,10 +1,6 @@
 package com.degref.variocard
 
-import android.content.Context
 import android.content.Intent
-import android.net.wifi.p2p.WifiP2pConfig
-import android.net.wifi.p2p.WifiP2pDevice
-import android.net.wifi.p2p.WifiP2pManager
 import android.nfc.NdefMessage
 import android.nfc.NdefRecord
 import android.nfc.NfcAdapter
@@ -43,12 +39,10 @@ import java.util.Arrays
 
 
 class MainActivity : ComponentActivity() {
-    // Revert GIT changes
+    // Pls work
     private var sendingMessage by mutableStateOf("No message sent")
     private var receivedMessage by mutableStateOf("No message received")
     private var isSenderActive by mutableStateOf(true)
-    private lateinit var manager: WifiP2pManager
-    private lateinit var channel: WifiP2pManager.Channel
 
     @OptIn(ExperimentalComposeUiApi::class)
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -63,9 +57,6 @@ class MainActivity : ComponentActivity() {
                 }
             }
         }
-
-        manager = getSystemService(Context.WIFI_P2P_SERVICE) as WifiP2pManager
-        channel = manager.initialize(this, mainLooper, null)
 
         // Set up NFC for HCE
         val nfcAdapter = NfcAdapter.getDefaultAdapter(this)
@@ -254,22 +245,5 @@ class MainActivity : ComponentActivity() {
         runOnUiThread {
             receivedMessage = message
         }
-    }
-
-    private fun createGroup() {
-        Log.d("WIFIP2P", "${WifiP2pManager.EXTRA_NETWORK_INFO}")
-        manager.createGroup(channel, object: WifiP2pManager.ActionListener {
-            override fun onSuccess() {
-                Log.d("WIFIP2P", "group creation success")
-            }
-
-            override fun onFailure(p0: Int) {
-                Toast.makeText(
-                    this@MainActivity,
-                    "P2P group creation failed. Retry.",
-                    Toast.LENGTH_SHORT
-                ).show()
-            }
-        })
     }
 }
