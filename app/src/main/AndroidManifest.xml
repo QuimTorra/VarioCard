@@ -4,6 +4,9 @@
 
     <uses-feature android:name="android.hardware.nfc.hce" android:required="true" />
     <uses-permission android:name="android.permission.NFC" />
+    <user-permission android:name="android.permission.ACCESS_WIFI_STATE" android:required="true" />
+    <user-permission android:name="android.permission.CHANGE_WIFI_STATE" android:required="true" />
+    <user-permission android:name="android.permission.INTERNET" android:required="true" />
 
     <application
         android:allowBackup="true"
