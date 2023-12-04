@@ -39,7 +39,7 @@ import java.util.Arrays
 
 
 class MainActivity : ComponentActivity() {
-
+    // Revert GIT changes
     private var sendingMessage by mutableStateOf("No message sent")
     private var receivedMessage by mutableStateOf("No message received")
     private var isSenderActive by mutableStateOf(true)
