@@ -6,18 +6,10 @@ import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
 import android.content.pm.PackageManager
-import android.net.ConnectivityManager
-import android.net.Network
-import android.net.NetworkCapabilities
-import android.net.wifi.WifiInfo
-import android.net.wifi.WifiManager
 import android.net.wifi.p2p.WifiP2pConfig
-import android.net.wifi.p2p.WifiP2pDeviceList
 import android.net.wifi.p2p.WifiP2pManager
-import android.nfc.NdefMessage
 import android.nfc.NdefRecord
 import android.nfc.NfcAdapter
-import android.nfc.NfcEvent
 import android.nfc.Tag
 import android.nfc.tech.Ndef
 import android.os.Build
@@ -51,12 +43,13 @@ import androidx.compose.ui.unit.dp
 import androidx.core.app.ActivityCompat
 import com.degref.variocard.Utils.parseTextrecordPayload
 import com.degref.variocard.ui.theme.VarioCardTheme
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Deferred
-import kotlinx.coroutines.Dispatchers
-import java.net.NetworkInterface
+import java.io.BufferedReader
+import java.io.InputStreamReader
+import java.io.OutputStream
+import java.io.PrintWriter
+import java.net.ServerSocket
+import java.net.Socket
 import java.util.Arrays
-import java.util.Collections
 
 
 class MainActivity : ComponentActivity() {
@@ -70,6 +63,18 @@ class MainActivity : ComponentActivity() {
     private lateinit var intentFilter: IntentFilter
     private lateinit var deviceName: String
 
+    private val connectionInfoListener: WifiP2pManager.ConnectionInfoListener by lazy {
+        WifiP2pManager.ConnectionInfoListener { info ->
+            // Check if the connection is established
+            if (info.groupFormed && info.isGroupOwner) {
+                // This device is the group owner (server)
+                Log.d("MONDONGO", "Connected as Group Owner")
+            } else if (info.groupFormed) {
+                // This device is a client
+                Log.d("MONDONGO", "Connected as Client")
+            }
+        }
+    }
 
     @OptIn(ExperimentalComposeUiApi::class)
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -226,7 +231,7 @@ class MainActivity : ComponentActivity() {
         if (ActivityCompat.checkSelfPermission(
                 this,
                 Manifest.permission.ACCESS_FINE_LOCATION
-            ) != PackageManager.PERMISSION_GRANTED || ActivityCompat.checkSelfPermission(
+            ) != PackageManager.PERMISSION_GRANTED && ActivityCompat.checkSelfPermission(
                 this,
                 Manifest.permission.NEARBY_WIFI_DEVICES
             ) != PackageManager.PERMISSION_GRANTED
@@ -244,6 +249,7 @@ class MainActivity : ComponentActivity() {
         wifiP2pManager.discoverPeers(channel, object : WifiP2pManager.ActionListener {
             override fun onSuccess() {
                 // Discovery initiation successful
+                
                 Log.d("MONDONGO", "Discovering devices")
             }
 
@@ -281,7 +287,7 @@ class MainActivity : ComponentActivity() {
         if (ActivityCompat.checkSelfPermission(
                 this,
                 Manifest.permission.ACCESS_FINE_LOCATION
-            ) != PackageManager.PERMISSION_GRANTED || ActivityCompat.checkSelfPermission(
+            ) != PackageManager.PERMISSION_GRANTED && ActivityCompat.checkSelfPermission(
                 this,
                 Manifest.permission.NEARBY_WIFI_DEVICES
             ) != PackageManager.PERMISSION_GRANTED
@@ -308,10 +314,12 @@ class MainActivity : ComponentActivity() {
             if (deviceA != null) {
                 val config = WifiP2pConfig()
                 config.deviceAddress = deviceA.deviceAddress
+                Log.d("MONDONGO", "here we are")
 
                 wifiP2pManager.connect(channel, config, object : WifiP2pManager.ActionListener {
                     override fun onSuccess() {
                         // Connection initiation successful
+                        Log.d("MONDONGO", deviceA.isGroupOwner.toString())
                     }
 
                     override fun onFailure(reasonCode: Int) {
