@@ -51,6 +51,9 @@ import androidx.compose.ui.unit.dp
 import androidx.core.app.ActivityCompat
 import com.degref.variocard.Utils.parseTextrecordPayload
 import com.degref.variocard.ui.theme.VarioCardTheme
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Deferred
+import kotlinx.coroutines.Dispatchers
 import java.net.NetworkInterface
 import java.util.Arrays
 import java.util.Collections
@@ -65,6 +68,7 @@ class MainActivity : ComponentActivity() {
     private lateinit var channel: WifiP2pManager.Channel
     private lateinit var wifiDirectReceiver: BroadcastReceiver
     private lateinit var intentFilter: IntentFilter
+    private lateinit var deviceName: String
 
 
     @OptIn(ExperimentalComposeUiApi::class)
@@ -83,6 +87,7 @@ class MainActivity : ComponentActivity() {
         wifiP2pManager = getSystemService(Context.WIFI_P2P_SERVICE) as WifiP2pManager
         channel = wifiP2pManager.initialize(this, mainLooper, null)
         initializeWiFiDirectReceiver()
+        getDeviceName()
 
         // Set up NFC for HCE
         val nfcAdapter = NfcAdapter.getDefaultAdapter(this)
@@ -191,9 +196,32 @@ class MainActivity : ComponentActivity() {
         }
     }
 
+    private fun startWifiDirectGroup() {
+        if (ActivityCompat.checkSelfPermission(
+                this,
+                Manifest.permission.ACCESS_FINE_LOCATION
+            ) != PackageManager.PERMISSION_GRANTED || ActivityCompat.checkSelfPermission(
+                this,
+                Manifest.permission.NEARBY_WIFI_DEVICES
+            ) != PackageManager.PERMISSION_GRANTED
+        ) {
+            return
+        }
+        wifiP2pManager.createGroup(channel, object : WifiP2pManager.ActionListener {
+            override fun onSuccess() {
+                // Group creation successful
+            }
+
+            override fun onFailure(reason: Int) {
+                // Group creation failed
+            }
+        })
+    }
+
     private fun sendNfcMessage(message: String) {
         val sendIntent = Intent(this, VarioCardApduService::class.java)
-        sendIntent.putExtra("ndefMessage", message)
+        Log.d("MONDONGO", "getDeviceName $deviceName")
+        sendIntent.putExtra("ndefMessage", deviceName)
         startService(sendIntent)
         if (ActivityCompat.checkSelfPermission(
                 this,
@@ -268,9 +296,10 @@ class MainActivity : ComponentActivity() {
             // for ActivityCompat#requestPermissions for more details.
             return
         }
+        Log.d("MONDONGO", "IS THIS $deviceName")
         wifiP2pManager.requestPeers(channel) { peers ->
             // Filter peers to find Device A based on some criteria (e.g., device name)
-            val deviceA = peers.deviceList.firstOrNull { it.deviceName == "DeviceAName" }
+            val deviceA = peers.deviceList.firstOrNull { it.deviceName == deviceName }
             if (deviceA != null) {
                 Log.d("MONDONGO", deviceA.deviceName)
             }
@@ -289,6 +318,37 @@ class MainActivity : ComponentActivity() {
                         // Connection initiation failed
                     }
                 })
+            }
+        }
+    }
+
+    private fun getDeviceName() {
+        if (ActivityCompat.checkSelfPermission(
+                this,
+                Manifest.permission.ACCESS_FINE_LOCATION
+            ) != PackageManager.PERMISSION_GRANTED || ActivityCompat.checkSelfPermission(
+                this,
+                Manifest.permission.NEARBY_WIFI_DEVICES
+            ) != PackageManager.PERMISSION_GRANTED
+        ) {
+            // Request necessary permissions
+            ActivityCompat.requestPermissions(
+                this,
+                arrayOf(
+                    Manifest.permission.ACCESS_FINE_LOCATION,
+                    Manifest.permission.NEARBY_WIFI_DEVICES
+                ),
+                123
+            )
+        }
+        // Permissions are already granted, proceed with device info request
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+            wifiP2pManager.requestDeviceInfo(channel) { device ->
+                // Device info is available here
+                if (device != null) {
+                    deviceName = device.deviceName
+                }
+                Log.d("MONDONGO", "Device Name: $deviceName")
             }
         }
     }
