@@ -7,11 +7,14 @@ import android.content.Intent
 import android.content.IntentFilter
 import android.content.pm.PackageManager
 import android.net.wifi.p2p.WifiP2pConfig
+import android.net.wifi.p2p.WifiP2pConfig.GROUP_OWNER_INTENT_MIN
+import android.net.wifi.p2p.WifiP2pInfo
 import android.net.wifi.p2p.WifiP2pManager
 import android.nfc.NdefRecord
 import android.nfc.NfcAdapter
 import android.nfc.Tag
 import android.nfc.tech.Ndef
+import android.os.AsyncTask
 import android.os.Build
 import android.os.Bundle
 import android.util.Log
@@ -65,9 +68,12 @@ class MainActivity : ComponentActivity() {
     private var receivedMessage by mutableStateOf("No message received")
     private var isSenderActive by mutableStateOf(true)
     private lateinit var wifiP2pManager: WifiP2pManager
+    private lateinit var wifiInfoListener: WifiP2pManager.ChannelListener
     private lateinit var channel: WifiP2pManager.Channel
     private lateinit var wifiDirectReceiver: BroadcastReceiver
     private lateinit var intentFilter: IntentFilter
+    private var fs: FileServerAsyncTask = FileServerAsyncTask(this)
+    private lateinit var serverAddress: InetAddress
     private var deviceName: String = ""
 
     @RequiresApi(Build.VERSION_CODES.TIRAMISU)
@@ -99,8 +105,16 @@ class MainActivity : ComponentActivity() {
         }
     }
 
+    fun onConnectionInfoAvailable(info: WifiP2pInfo) {
+        serverAddress = info.groupOwnerAddress
+        val isGroupOwner = info.isGroupOwner
+
+        // Use groupOwnerAddress and isGroupOwner as needed
+        Log.d("MONDONGO","Group Owner - $isGroupOwner, Group Owner Address - $serverAddress")
+    }
+
     private fun initializeWiFiDirectReceiver() {
-        wifiDirectReceiver = WiFiDirectReceiver()
+        wifiDirectReceiver = WiFiDirectReceiver(wifiP2pManager, channel, this)
         intentFilter = IntentFilter()
 
         // Add necessary Wi-Fi Direct action filters
@@ -189,6 +203,7 @@ class MainActivity : ComponentActivity() {
             stopReaderMode()
             sendNfcMessage()
         } else {
+            fs.stopServer()
             startReaderMode()
         }
     }
@@ -238,8 +253,8 @@ class MainActivity : ComponentActivity() {
         }
         wifiP2pManager.discoverPeers(channel, object : WifiP2pManager.ActionListener {
             override fun onSuccess() {
-                // Discovery initiation successful
-                // val fileServerTask = FileServerAsyncTask(this@MainActivity)
+                fs = FileServerAsyncTask(this@MainActivity,)
+                fs.executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR)
                 Log.d("MONDONGO", "4. (sender) Discovering devices")
             }
 
@@ -297,10 +312,10 @@ class MainActivity : ComponentActivity() {
             if (deviceA != null) {
                 val config = WifiP2pConfig()
                 config.deviceAddress = deviceA.deviceAddress
-
                 wifiP2pManager.connect(channel, config, object : WifiP2pManager.ActionListener {
                     override fun onSuccess() {
                         Log.d("MONDONGO", "5. (reader) Found device and connected")
+                        sendData(config)
                     }
 
                     override fun onFailure(reasonCode: Int) {
@@ -316,7 +331,7 @@ class MainActivity : ComponentActivity() {
         GlobalScope.launch(Dispatchers.IO) {
             try {
                 val socket = Socket()
-                val buf = ByteArray(1024)
+//                val buf = ByteArray(1024)
 
                 /**
                  * Create a client socket with the host,
@@ -328,7 +343,7 @@ class MainActivity : ComponentActivity() {
                 Log.d("MONDONGO", "Config ${config.deviceAddress}")
                 Log.d("MONDONGO", "End Logs of sending data...")
                 socket.connect(
-                    (InetSocketAddress(InetAddress.getByName(config.deviceAddress), 8888)),
+                    (InetSocketAddress(serverAddress, 8888)),
                     500
                 )
                 Log.d("MONDONGO", "deviceAddress....")
@@ -347,7 +362,6 @@ class MainActivity : ComponentActivity() {
                 // while (inputStream?.read(buf).also { len = it } != -1) {
                 //     outputStream.write(buf, 0, len)
                 // }
-
                 outputStream.close()
                 // inputStream?.close()
 
@@ -405,6 +419,7 @@ class MainActivity : ComponentActivity() {
         }
         else {
             Log.d("MONDONGO", "0. This device is old")
+            deviceName = "HUAWEI Mate 9"
         }
     }
 
