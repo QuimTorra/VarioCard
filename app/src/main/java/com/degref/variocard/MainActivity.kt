@@ -6,7 +6,9 @@ import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
 import android.content.pm.PackageManager
+import android.net.Uri
 import android.net.wifi.p2p.WifiP2pConfig
+import android.net.wifi.p2p.WifiP2pDevice
 import android.net.wifi.p2p.WifiP2pManager
 import android.nfc.NdefRecord
 import android.nfc.NfcAdapter
@@ -43,10 +45,16 @@ import androidx.compose.ui.unit.dp
 import androidx.core.app.ActivityCompat
 import com.degref.variocard.Utils.parseTextrecordPayload
 import com.degref.variocard.ui.theme.VarioCardTheme
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.GlobalScope
+import kotlinx.coroutines.launch
 import java.io.BufferedReader
+import java.io.InputStream
 import java.io.InputStreamReader
 import java.io.OutputStream
 import java.io.PrintWriter
+import java.net.InetAddress
+import java.net.InetSocketAddress
 import java.net.ServerSocket
 import java.net.Socket
 import java.util.Arrays
@@ -61,7 +69,7 @@ class MainActivity : ComponentActivity() {
     private lateinit var channel: WifiP2pManager.Channel
     private lateinit var wifiDirectReceiver: BroadcastReceiver
     private lateinit var intentFilter: IntentFilter
-    private lateinit var deviceName: String
+    private var deviceName: String = ""
 
     private val connectionInfoListener: WifiP2pManager.ConnectionInfoListener by lazy {
         WifiP2pManager.ConnectionInfoListener { info ->
@@ -93,6 +101,8 @@ class MainActivity : ComponentActivity() {
         channel = wifiP2pManager.initialize(this, mainLooper, null)
         initializeWiFiDirectReceiver()
         getDeviceName()
+        Log.d("MONDONGO", "DEVICE: $deviceName")
+        Log.d("MONDONGO", "checkpoint")
 
         // Set up NFC for HCE
         val nfcAdapter = NfcAdapter.getDefaultAdapter(this)
@@ -202,10 +212,11 @@ class MainActivity : ComponentActivity() {
     }
 
     private fun startWifiDirectGroup() {
+        Log.d("MONDONGO", "Group intent....")
         if (ActivityCompat.checkSelfPermission(
                 this,
                 Manifest.permission.ACCESS_FINE_LOCATION
-            ) != PackageManager.PERMISSION_GRANTED || ActivityCompat.checkSelfPermission(
+            ) != PackageManager.PERMISSION_GRANTED && ActivityCompat.checkSelfPermission(
                 this,
                 Manifest.permission.NEARBY_WIFI_DEVICES
             ) != PackageManager.PERMISSION_GRANTED
@@ -214,6 +225,7 @@ class MainActivity : ComponentActivity() {
         }
         wifiP2pManager.createGroup(channel, object : WifiP2pManager.ActionListener {
             override fun onSuccess() {
+                Log.d("MONDONGO","Group created :)")
                 // Group creation successful
             }
 
@@ -225,6 +237,7 @@ class MainActivity : ComponentActivity() {
 
     private fun sendNfcMessage(message: String) {
         val sendIntent = Intent(this, VarioCardApduService::class.java)
+        startWifiDirectGroup()
         Log.d("MONDONGO", "getDeviceName $deviceName")
         sendIntent.putExtra("ndefMessage", deviceName)
         startService(sendIntent)
@@ -237,19 +250,12 @@ class MainActivity : ComponentActivity() {
             ) != PackageManager.PERMISSION_GRANTED
         ) {
             Log.d("MONDONGO", "Permission said nonono")
-            // TODO: Consider calling
-            //    ActivityCompat#requestPermissions
-            // here to request the missing permissions, and then overriding
-            //   public void onRequestPermissionsResult(int requestCode, String[] permissions,
-            //                                          int[] grantResults)
-            // to handle the case where the user grants the permission. See the documentation
-            // for ActivityCompat#requestPermissions for more details.
             return
         }
         wifiP2pManager.discoverPeers(channel, object : WifiP2pManager.ActionListener {
             override fun onSuccess() {
                 // Discovery initiation successful
-                
+                val fileServerTask = FileServerAsyncTask(this@MainActivity)
                 Log.d("MONDONGO", "Discovering devices")
             }
 
@@ -304,6 +310,7 @@ class MainActivity : ComponentActivity() {
         }
         Log.d("MONDONGO", "IS THIS $deviceName")
         wifiP2pManager.requestPeers(channel) { peers ->
+            Log.d("MONDONGO", "devicesList: ${peers.deviceList.toString()}")
             // Filter peers to find Device A based on some criteria (e.g., device name)
             val deviceA = peers.deviceList.firstOrNull { it.deviceName == deviceName }
             if (deviceA != null) {
@@ -319,6 +326,7 @@ class MainActivity : ComponentActivity() {
                 wifiP2pManager.connect(channel, config, object : WifiP2pManager.ActionListener {
                     override fun onSuccess() {
                         // Connection initiation successful
+                        sendData(config)
                         Log.d("MONDONGO", deviceA.isGroupOwner.toString())
                     }
 
@@ -330,11 +338,64 @@ class MainActivity : ComponentActivity() {
         }
     }
 
+    private fun sendData(config: WifiP2pConfig) {
+        GlobalScope.launch(Dispatchers.IO) {
+            try {
+                val socket = Socket()
+                val buf = ByteArray(1024)
+
+                /**
+                 * Create a client socket with the host,
+                 * port, and timeout information.
+                 */
+                socket.bind(null)
+                Log.d("MONDONGO", "Logs of sending data...")
+                Log.d("MONDONGO", "address ${config.deviceAddress}")
+                Log.d("MONDONGO", "Config ${config.deviceAddress}")
+                Log.d("MONDONGO", "End Logs of sending data...")
+                socket.connect(
+                    (InetSocketAddress(InetAddress.getByName(config.deviceAddress), 8888)),
+                    500
+                )
+                Log.d("MONDONGO", "deviceAddress....")
+
+                /**
+                 * Create a byte stream from a message and pipe it to the output stream
+                 * of the socket. This data is retrieved by the server device.
+                 */
+                val outputStream = socket.getOutputStream()
+                val message = "Hello, WifiDirect working!"
+                outputStream.write(message.toByteArray())
+
+                // If you have an InputStream, you can uncomment the following lines
+                // val cr = applicationContext.contentResolver
+                // val inputStream: InputStream? = cr.openInputStream(Uri.parse("path/to/picture.jpg"))
+                // while (inputStream?.read(buf).also { len = it } != -1) {
+                //     outputStream.write(buf, 0, len)
+                // }
+
+                outputStream.close()
+                // inputStream?.close()
+
+                /**
+                 * Clean up any open sockets when done
+                 * transferring or if an exception occurred.
+                 */
+                socket.takeIf { it.isConnected }?.apply {
+                    close()
+                }
+            } catch (e: Exception) {
+                Log.d("MONDONGO", "exception raised: $e")
+            }
+        }
+    }
+
+
     private fun getDeviceName() {
         if (ActivityCompat.checkSelfPermission(
                 this,
                 Manifest.permission.ACCESS_FINE_LOCATION
-            ) != PackageManager.PERMISSION_GRANTED || ActivityCompat.checkSelfPermission(
+            ) != PackageManager.PERMISSION_GRANTED && ActivityCompat.checkSelfPermission(
                 this,
                 Manifest.permission.NEARBY_WIFI_DEVICES
             ) != PackageManager.PERMISSION_GRANTED
@@ -359,6 +420,11 @@ class MainActivity : ComponentActivity() {
                 Log.d("MONDONGO", "Device Name: $deviceName")
             }
         }
+        else {
+            deviceName = "[Phone] Galaxy S7"
+            Log.d("MONDONGO", "sdk version")
+        }
+        Log.d("MONDONGO", "checkpoint2")
     }
 
     private inner class NfcCallback : NfcAdapter.ReaderCallback {

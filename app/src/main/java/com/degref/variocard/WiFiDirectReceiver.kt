@@ -18,6 +18,7 @@ class WiFiDirectReceiver : BroadcastReceiver() {
                     intent.getParcelableExtra<WifiP2pDevice>(WifiP2pManager.EXTRA_WIFI_P2P_DEVICE)
                 if (device != null) {
                     val deviceName = device.deviceName
+
                     Log.d("MONDONGO", "reached here: $deviceName")
                 }
             }
