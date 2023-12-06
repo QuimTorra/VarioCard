@@ -31,10 +31,8 @@ class VarioCardApduService : HostApduService() {
     }
 
     override fun onStartCommand(intent: Intent, flags: Int, startId: Int): Int {
-        Log.d("MONDONGO", "Extras: ${intent.extras}")
         if (intent.hasExtra("ndefMessage")) {
             val ndefMessage = getNdefMessage(intent.getStringExtra("ndefMessage"))
-            Log.d("MONDONGO", "$ndefMessage")
             if (ndefMessage != null) {
                 val nLen = ndefMessage.byteArrayLength
                 mNdefRecordFile = ByteArray(nLen + 2)

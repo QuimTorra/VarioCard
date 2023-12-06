@@ -6,9 +6,7 @@ import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
 import android.content.pm.PackageManager
-import android.net.Uri
 import android.net.wifi.p2p.WifiP2pConfig
-import android.net.wifi.p2p.WifiP2pDevice
 import android.net.wifi.p2p.WifiP2pManager
 import android.nfc.NdefRecord
 import android.nfc.NfcAdapter
@@ -20,6 +18,7 @@ import android.util.Log
 import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import androidx.annotation.RequiresApi
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
@@ -38,13 +37,13 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
-import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.core.app.ActivityCompat
 import com.degref.variocard.Utils.parseTextrecordPayload
 import com.degref.variocard.ui.theme.VarioCardTheme
+import kotlinx.coroutines.DelicateCoroutinesApi
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.launch
@@ -71,20 +70,7 @@ class MainActivity : ComponentActivity() {
     private lateinit var intentFilter: IntentFilter
     private var deviceName: String = ""
 
-    private val connectionInfoListener: WifiP2pManager.ConnectionInfoListener by lazy {
-        WifiP2pManager.ConnectionInfoListener { info ->
-            // Check if the connection is established
-            if (info.groupFormed && info.isGroupOwner) {
-                // This device is the group owner (server)
-                Log.d("MONDONGO", "Connected as Group Owner")
-            } else if (info.groupFormed) {
-                // This device is a client
-                Log.d("MONDONGO", "Connected as Client")
-            }
-        }
-    }
-
-    @OptIn(ExperimentalComposeUiApi::class)
+    @RequiresApi(Build.VERSION_CODES.TIRAMISU)
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContent {
@@ -101,8 +87,6 @@ class MainActivity : ComponentActivity() {
         channel = wifiP2pManager.initialize(this, mainLooper, null)
         initializeWiFiDirectReceiver()
         getDeviceName()
-        Log.d("MONDONGO", "DEVICE: $deviceName")
-        Log.d("MONDONGO", "checkpoint")
 
         // Set up NFC for HCE
         val nfcAdapter = NfcAdapter.getDefaultAdapter(this)
@@ -133,8 +117,7 @@ class MainActivity : ComponentActivity() {
         unregisterReceiver(wifiDirectReceiver)
     }
 
-
-
+    @RequiresApi(Build.VERSION_CODES.TIRAMISU)
     @OptIn(ExperimentalMaterial3Api::class)
     @Preview
     @Composable
@@ -196,23 +179,22 @@ class MainActivity : ComponentActivity() {
     private fun stopReaderMode() {
         val nfcAdapter = NfcAdapter.getDefaultAdapter(this)
         nfcAdapter?.disableReaderMode(this)
-        Log.d("MONDONGO", "desactivar reader mode")
     }
 
+    @RequiresApi(Build.VERSION_CODES.TIRAMISU)
     private fun toggleNfcMode() {
         // Toggle between sender and reader modes
         isSenderActive = !isSenderActive
         if (isSenderActive) {
             stopReaderMode()
-            Log.d("MONDONGO", Build.MODEL)
-            sendNfcMessage(Build.MODEL)
+            sendNfcMessage()
         } else {
             startReaderMode()
         }
     }
 
     private fun startWifiDirectGroup() {
-        Log.d("MONDONGO", "Group intent....")
+        Log.d("MONDONGO", "1. Group intent....")
         if (ActivityCompat.checkSelfPermission(
                 this,
                 Manifest.permission.ACCESS_FINE_LOCATION
@@ -225,20 +207,22 @@ class MainActivity : ComponentActivity() {
         }
         wifiP2pManager.createGroup(channel, object : WifiP2pManager.ActionListener {
             override fun onSuccess() {
-                Log.d("MONDONGO","Group created :)")
+                Log.d("MONDONGO","2. Group created :)")
                 // Group creation successful
             }
 
             override fun onFailure(reason: Int) {
                 // Group creation failed
+                Log.d("MONDONGO", "2. Cannot create group ${reason.toString()}")
             }
         })
     }
 
-    private fun sendNfcMessage(message: String) {
+    @RequiresApi(Build.VERSION_CODES.TIRAMISU)
+    private fun sendNfcMessage() {
+        Log.d("MONDONGO", "* DEVICE: $deviceName")
         val sendIntent = Intent(this, VarioCardApduService::class.java)
-        startWifiDirectGroup()
-        Log.d("MONDONGO", "getDeviceName $deviceName")
+        Log.d("MONDONGO", "3. (sender) gotDeviceName $deviceName")
         sendIntent.putExtra("ndefMessage", deviceName)
         startService(sendIntent)
         if (ActivityCompat.checkSelfPermission(
@@ -249,18 +233,18 @@ class MainActivity : ComponentActivity() {
                 Manifest.permission.NEARBY_WIFI_DEVICES
             ) != PackageManager.PERMISSION_GRANTED
         ) {
-            Log.d("MONDONGO", "Permission said nonono")
+            Log.d("MONDONGO", "4. (sender) Permission said nonono")
             return
         }
         wifiP2pManager.discoverPeers(channel, object : WifiP2pManager.ActionListener {
             override fun onSuccess() {
                 // Discovery initiation successful
-                val fileServerTask = FileServerAsyncTask(this@MainActivity)
-                Log.d("MONDONGO", "Discovering devices")
+                // val fileServerTask = FileServerAsyncTask(this@MainActivity)
+                Log.d("MONDONGO", "4. (sender) Discovering devices")
             }
 
             override fun onFailure(reasonCode: Int) {
-                // Discovery initiation failed
+                Log.d("MONDONGO", "4. (sender) Cannot discover devices $reasonCode")
             }
         })
     }
@@ -283,7 +267,6 @@ class MainActivity : ComponentActivity() {
     override fun onPause() {
         super.onPause()
         NfcAdapter.getDefaultAdapter(this)?.disableForegroundDispatch(this)
-        // Stop sender mode when the activity is paused
         if (!isSenderActive) {
             stopReaderMode()
         }
@@ -298,46 +281,37 @@ class MainActivity : ComponentActivity() {
                 Manifest.permission.NEARBY_WIFI_DEVICES
             ) != PackageManager.PERMISSION_GRANTED
         ) {
-            Log.d("MONDONGO", "I no permission")
+            Log.d("MONDONGO", "2. (reader) I no permission")
             // TODO: Consider calling
             //    ActivityCompat#requestPermissions
-            // here to request the missing permissions, and then overriding
-            //   public void onRequestPermissionsResult(int requestCode, String[] permissions,
-            //                                          int[] grantResults)
-            // to handle the case where the user grants the permission. See the documentation
-            // for ActivityCompat#requestPermissions for more details.
             return
         }
-        Log.d("MONDONGO", "IS THIS $deviceName")
+        Log.d("MONDONGO", "2. (reader) trying to connect to $deviceName")
         wifiP2pManager.requestPeers(channel) { peers ->
-            Log.d("MONDONGO", "devicesList: ${peers.deviceList.toString()}")
-            // Filter peers to find Device A based on some criteria (e.g., device name)
+            Log.d("MONDONGO", "3. (reader) devicesList: ${peers.deviceList}")
             val deviceA = peers.deviceList.firstOrNull { it.deviceName == deviceName }
             if (deviceA != null) {
-                Log.d("MONDONGO", deviceA.deviceName)
+                Log.d("MONDONGO", "4. (reader) Found device ${deviceA.deviceName}")
             }
-            else Log.d("MONDONGO", "Device is null :(")
-            // If Device A is found, initiate a Wi-Fi Direct connection
+            else Log.d("MONDONGO", "4. (reader) Device is null :(")
             if (deviceA != null) {
                 val config = WifiP2pConfig()
                 config.deviceAddress = deviceA.deviceAddress
-                Log.d("MONDONGO", "here we are")
 
                 wifiP2pManager.connect(channel, config, object : WifiP2pManager.ActionListener {
                     override fun onSuccess() {
-                        // Connection initiation successful
-                        sendData(config)
-                        Log.d("MONDONGO", deviceA.isGroupOwner.toString())
+                        Log.d("MONDONGO", "5. (reader) Found device and connected")
                     }
 
                     override fun onFailure(reasonCode: Int) {
-                        // Connection initiation failed
+                        Log.d("MONDONGO", "5. (reader) Could not connect $reasonCode")
                     }
                 })
             }
         }
     }
 
+    @OptIn(DelicateCoroutinesApi::class)
     private fun sendData(config: WifiP2pConfig) {
         GlobalScope.launch(Dispatchers.IO) {
             try {
@@ -391,6 +365,7 @@ class MainActivity : ComponentActivity() {
     }
 
 
+    @RequiresApi(Build.VERSION_CODES.TIRAMISU)
     private fun getDeviceName() {
         if (ActivityCompat.checkSelfPermission(
                 this,
@@ -400,7 +375,6 @@ class MainActivity : ComponentActivity() {
                 Manifest.permission.NEARBY_WIFI_DEVICES
             ) != PackageManager.PERMISSION_GRANTED
         ) {
-            // Request necessary permissions
             ActivityCompat.requestPermissions(
                 this,
                 arrayOf(
@@ -410,29 +384,33 @@ class MainActivity : ComponentActivity() {
                 123
             )
         }
-        // Permissions are already granted, proceed with device info request
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+            startWifiDirectGroup()
             wifiP2pManager.requestDeviceInfo(channel) { device ->
-                // Device info is available here
                 if (device != null) {
                     deviceName = device.deviceName
+                    Log.d("MONDONGO","0. Found device name $deviceName")
+                    wifiP2pManager.removeGroup(channel, object : WifiP2pManager.ActionListener {
+                        override fun onSuccess() {
+                            Log.d("MONDONGO","0.1 Group deleted :)")
+                        }
+
+                        override fun onFailure(reason: Int) {
+                            Log.d("MONDONGO", "0.1 Didn't delete group $reason")
+                        }
+                    })
                 }
-                Log.d("MONDONGO", "Device Name: $deviceName")
+                else Log.d("MONDONGO", "0 Not found device :(")
             }
         }
         else {
-            deviceName = "[Phone] Galaxy S7"
-            Log.d("MONDONGO", "sdk version")
+            Log.d("MONDONGO", "0. This device is old")
         }
-        Log.d("MONDONGO", "checkpoint2")
     }
 
     private inner class NfcCallback : NfcAdapter.ReaderCallback {
         override fun onTagDiscovered(tag: Tag?) {
-            if (isSenderActive) {
-                showToast("NFC tag discovered while sending")
-                sendNfcMessage(sendingMessage)
-            } else {
+            if (!isSenderActive) {
                 showToast("Read a tag :)")
                 val mNdef = Ndef.get(tag)
                 if (mNdef != null) {
@@ -446,10 +424,10 @@ class MainActivity : ComponentActivity() {
                             val ndefType = record[i].type
                             val ndefPayload = record[i].payload
                             if (ndefTnf == NdefRecord.TNF_WELL_KNOWN && Arrays.equals(ndefType, NdefRecord.RTD_TEXT)) {
-                                ndefText = """$ndefText${parseTextrecordPayload(ndefPayload)}"""
+                                ndefText = parseTextrecordPayload(ndefPayload)
                             }
                             val finalNdefText = ndefText
-                            Log.d("MONDONGO", finalNdefText)
+                            Log.d("MONDONGO", "1. (reader) received: $finalNdefText")
                             connectWifiDirect(finalNdefText)
                         }
                     }
