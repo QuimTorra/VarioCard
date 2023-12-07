@@ -2,19 +2,14 @@ package com.degref.variocard
 
 import android.Manifest
 import android.content.BroadcastReceiver
-import android.content.Context
-import android.content.Intent
 import android.content.IntentFilter
 import android.content.pm.PackageManager
 import android.net.wifi.p2p.WifiP2pConfig
-import android.net.wifi.p2p.WifiP2pConfig.GROUP_OWNER_INTENT_MIN
-import android.net.wifi.p2p.WifiP2pInfo
 import android.net.wifi.p2p.WifiP2pManager
 import android.nfc.NdefRecord
 import android.nfc.NfcAdapter
 import android.nfc.Tag
 import android.nfc.tech.Ndef
-import android.os.AsyncTask
 import android.os.Build
 import android.os.Bundle
 import android.util.Log
@@ -50,14 +45,8 @@ import kotlinx.coroutines.DelicateCoroutinesApi
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.launch
-import java.io.BufferedReader
-import java.io.InputStream
-import java.io.InputStreamReader
-import java.io.OutputStream
-import java.io.PrintWriter
 import java.net.InetAddress
 import java.net.InetSocketAddress
-import java.net.ServerSocket
 import java.net.Socket
 import java.util.Arrays
 
@@ -67,12 +56,12 @@ class MainActivity : ComponentActivity() {
     private var sendingMessage by mutableStateOf("No message sent")
     private var receivedMessage by mutableStateOf("No message received")
     private var isSenderActive by mutableStateOf(true)
+    private lateinit var nfcManager: NFCManager
+    private lateinit var wifiDirectManager: WiFiDirectManager
     private lateinit var wifiP2pManager: WifiP2pManager
-    private lateinit var wifiInfoListener: WifiP2pManager.ChannelListener
     private lateinit var channel: WifiP2pManager.Channel
     private lateinit var wifiDirectReceiver: BroadcastReceiver
     private lateinit var intentFilter: IntentFilter
-    private var fs: FileServerAsyncTask = FileServerAsyncTask(this)
     private lateinit var serverAddress: InetAddress
     private var deviceName: String = ""
 
@@ -89,10 +78,11 @@ class MainActivity : ComponentActivity() {
                 }
             }
         }
-        wifiP2pManager = getSystemService(Context.WIFI_P2P_SERVICE) as WifiP2pManager
-        channel = wifiP2pManager.initialize(this, mainLooper, null)
+        wifiDirectManager = WiFiDirectManager(this, this@MainActivity)
+        nfcManager = NFCManager(this, this@MainActivity)
+
         initializeWiFiDirectReceiver()
-        getDeviceName()
+        wifiDirectManager.getDeviceName()
 
         // Set up NFC for HCE
         val nfcAdapter = NfcAdapter.getDefaultAdapter(this)
@@ -105,16 +95,10 @@ class MainActivity : ComponentActivity() {
         }
     }
 
-    fun onConnectionInfoAvailable(info: WifiP2pInfo) {
-        serverAddress = info.groupOwnerAddress
-        val isGroupOwner = info.isGroupOwner
 
-        // Use groupOwnerAddress and isGroupOwner as needed
-        Log.d("MONDONGO","Group Owner - $isGroupOwner, Group Owner Address - $serverAddress")
-    }
 
     private fun initializeWiFiDirectReceiver() {
-        wifiDirectReceiver = WiFiDirectReceiver(wifiP2pManager, channel, this)
+        wifiDirectReceiver = WiFiDirectReceiver(wifiDirectManager)
         intentFilter = IntentFilter()
 
         // Add necessary Wi-Fi Direct action filters
@@ -172,24 +156,6 @@ class MainActivity : ComponentActivity() {
         }
     }
 
-    private fun startReaderMode() {
-        val nfcAdapter = NfcAdapter.getDefaultAdapter(this)
-        val options = Bundle()
-        // Work around for some broken Nfc firmware implementations that poll the card too fast
-        options.putInt(NfcAdapter.EXTRA_READER_PRESENCE_CHECK_DELAY, 1000)
-        nfcAdapter?.enableReaderMode(
-            this,
-            NfcCallback(),
-            NfcAdapter.FLAG_READER_NFC_A or
-                    NfcAdapter.FLAG_READER_NFC_B or
-                    NfcAdapter.FLAG_READER_NFC_F or
-                    NfcAdapter.FLAG_READER_NFC_V or
-                    NfcAdapter.FLAG_READER_NFC_BARCODE or
-                    NfcAdapter.FLAG_READER_NO_PLATFORM_SOUNDS,
-            options
-        )
-    }
-
     private fun stopReaderMode() {
         val nfcAdapter = NfcAdapter.getDefaultAdapter(this)
         nfcAdapter?.disableReaderMode(this)
@@ -201,67 +167,12 @@ class MainActivity : ComponentActivity() {
         isSenderActive = !isSenderActive
         if (isSenderActive) {
             stopReaderMode()
-            sendNfcMessage()
+            nfcManager.sendNfcMessage("deg")
+            wifiDirectManager.openWiFiDirect()
         } else {
-            fs.stopServer()
             startReaderMode()
+            wifiDirectManager.stopServer()
         }
-    }
-
-    private fun startWifiDirectGroup() {
-        Log.d("MONDONGO", "1. Group intent....")
-        if (ActivityCompat.checkSelfPermission(
-                this,
-                Manifest.permission.ACCESS_FINE_LOCATION
-            ) != PackageManager.PERMISSION_GRANTED && ActivityCompat.checkSelfPermission(
-                this,
-                Manifest.permission.NEARBY_WIFI_DEVICES
-            ) != PackageManager.PERMISSION_GRANTED
-        ) {
-            return
-        }
-        wifiP2pManager.createGroup(channel, object : WifiP2pManager.ActionListener {
-            override fun onSuccess() {
-                Log.d("MONDONGO","2. Group created :)")
-                // Group creation successful
-            }
-
-            override fun onFailure(reason: Int) {
-                // Group creation failed
-                Log.d("MONDONGO", "2. Cannot create group ${reason.toString()}")
-            }
-        })
-    }
-
-    @RequiresApi(Build.VERSION_CODES.TIRAMISU)
-    private fun sendNfcMessage() {
-        Log.d("MONDONGO", "* DEVICE: $deviceName")
-        val sendIntent = Intent(this, VarioCardApduService::class.java)
-        Log.d("MONDONGO", "3. (sender) gotDeviceName $deviceName")
-        sendIntent.putExtra("ndefMessage", deviceName)
-        startService(sendIntent)
-        if (ActivityCompat.checkSelfPermission(
-                this,
-                Manifest.permission.ACCESS_FINE_LOCATION
-            ) != PackageManager.PERMISSION_GRANTED && ActivityCompat.checkSelfPermission(
-                this,
-                Manifest.permission.NEARBY_WIFI_DEVICES
-            ) != PackageManager.PERMISSION_GRANTED
-        ) {
-            Log.d("MONDONGO", "4. (sender) Permission said nonono")
-            return
-        }
-        wifiP2pManager.discoverPeers(channel, object : WifiP2pManager.ActionListener {
-            override fun onSuccess() {
-                fs = FileServerAsyncTask(this@MainActivity,)
-                fs.executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR)
-                Log.d("MONDONGO", "4. (sender) Discovering devices")
-            }
-
-            override fun onFailure(reasonCode: Int) {
-                Log.d("MONDONGO", "4. (sender) Cannot discover devices $reasonCode")
-            }
-        })
     }
 
     private fun showToast(message: String) {
@@ -374,79 +285,6 @@ class MainActivity : ComponentActivity() {
                 }
             } catch (e: Exception) {
                 Log.d("MONDONGO", "exception raised: $e")
-            }
-        }
-    }
-
-
-    @RequiresApi(Build.VERSION_CODES.TIRAMISU)
-    private fun getDeviceName() {
-        if (ActivityCompat.checkSelfPermission(
-                this,
-                Manifest.permission.ACCESS_FINE_LOCATION
-            ) != PackageManager.PERMISSION_GRANTED && ActivityCompat.checkSelfPermission(
-                this,
-                Manifest.permission.NEARBY_WIFI_DEVICES
-            ) != PackageManager.PERMISSION_GRANTED
-        ) {
-            ActivityCompat.requestPermissions(
-                this,
-                arrayOf(
-                    Manifest.permission.ACCESS_FINE_LOCATION,
-                    Manifest.permission.NEARBY_WIFI_DEVICES
-                ),
-                123
-            )
-        }
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-            startWifiDirectGroup()
-            wifiP2pManager.requestDeviceInfo(channel) { device ->
-                if (device != null) {
-                    deviceName = device.deviceName
-                    Log.d("MONDONGO","0. Found device name $deviceName")
-                    wifiP2pManager.removeGroup(channel, object : WifiP2pManager.ActionListener {
-                        override fun onSuccess() {
-                            Log.d("MONDONGO","0.1 Group deleted :)")
-                        }
-
-                        override fun onFailure(reason: Int) {
-                            Log.d("MONDONGO", "0.1 Didn't delete group $reason")
-                        }
-                    })
-                }
-                else Log.d("MONDONGO", "0 Not found device :(")
-            }
-        }
-        else {
-            Log.d("MONDONGO", "0. This device is old")
-            deviceName = "HUAWEI Mate 9"
-        }
-    }
-
-    private inner class NfcCallback : NfcAdapter.ReaderCallback {
-        override fun onTagDiscovered(tag: Tag?) {
-            if (!isSenderActive) {
-                showToast("Read a tag :)")
-                val mNdef = Ndef.get(tag)
-                if (mNdef != null) {
-                    val mNdefMessage = mNdef.cachedNdefMessage
-                    val record = mNdefMessage.records
-                    val ndefRecordsCount = record.size
-                    if (ndefRecordsCount > 0) {
-                        var ndefText = ""
-                        for (i in 0 until ndefRecordsCount) {
-                            val ndefTnf = record[i].tnf
-                            val ndefType = record[i].type
-                            val ndefPayload = record[i].payload
-                            if (ndefTnf == NdefRecord.TNF_WELL_KNOWN && Arrays.equals(ndefType, NdefRecord.RTD_TEXT)) {
-                                ndefText = parseTextrecordPayload(ndefPayload)
-                            }
-                            val finalNdefText = ndefText
-                            Log.d("MONDONGO", "1. (reader) received: $finalNdefText")
-                            connectWifiDirect(finalNdefText)
-                        }
-                    }
-                }
             }
         }
     }
