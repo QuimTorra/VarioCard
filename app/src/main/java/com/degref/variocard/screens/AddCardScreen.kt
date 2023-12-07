@@ -1,6 +1,5 @@
 package com.degref.variocard.screens
 
-import Card
 import addCard
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -32,6 +31,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.semantics.SemanticsProperties.ImeAction
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavHostController
+import com.degref.variocard.data.Card
 
 @Composable
 fun AddCardScreen(

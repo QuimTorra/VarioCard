@@ -27,14 +27,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavHostController
 import com.degref.variocard.components.CardListItem
-
-data class Card(
-    var name: String,
-    var phone: String,
-    var email: String,
-    var company: String,
-    var additionalInfo: String
-)
+import com.degref.variocard.data.Card
 
 var myOwnCards: List<Card> by mutableStateOf(
     listOf(
