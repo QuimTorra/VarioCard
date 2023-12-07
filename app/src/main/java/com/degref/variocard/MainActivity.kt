@@ -42,10 +42,14 @@ import androidx.compose.ui.unit.dp
 import androidx.core.app.ActivityCompat
 import com.degref.variocard.Utils.parseTextrecordPayload
 import com.degref.variocard.ui.theme.VarioCardTheme
+import kotlinx.coroutines.Deferred
 import kotlinx.coroutines.DelicateCoroutinesApi
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.GlobalScope
+import kotlinx.coroutines.async
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.withContext
 import java.net.InetAddress
 import java.net.InetSocketAddress
 import java.net.Socket
@@ -82,7 +86,6 @@ class MainActivity : ComponentActivity() {
         nfcManager = NFCManager(this, this@MainActivity)
 
         initializeWiFiDirectReceiver()
-        //wifiDirectManager.getDeviceName()
 
         // Set up NFC for HCE
         val nfcAdapter = NfcAdapter.getDefaultAdapter(this)
@@ -168,30 +171,20 @@ class MainActivity : ComponentActivity() {
         }
     }
 
-    @RequiresApi(Build.VERSION_CODES.TIRAMISU)
-    private fun toggleNfcMode() {
-        // Toggle between sender and reader modes
-        isSenderActive = !isSenderActive
-        if (isSenderActive) {
-            nfcManager.stopReaderMode()
-            nfcManager.sendNfcMessage(wifiDirectManager.checkDeviceName())
-            wifiDirectManager.openWiFiDirect()
-        } else {
-            nfcManager.startReaderMode(wifiDirectManager)
-            wifiDirectManager.stopServer()
-        }
-    }
-
     private fun activateReader(){
         nfcManager.startReaderMode(wifiDirectManager)
         wifiDirectManager.stopServer()
     }
 
     @RequiresApi(Build.VERSION_CODES.TIRAMISU)
-    private fun activateSender(){
+    private fun activateSender() {
         nfcManager.stopReaderMode()
-        nfcManager.sendNfcMessage(wifiDirectManager.checkDeviceName())
-        wifiDirectManager.openWiFiDirect()
+        runBlocking {
+            val deviceName = wifiDirectManager.getDeviceName()
+            Log.d("MONDONGO", deviceName)
+            nfcManager.sendNfcMessage(deviceName)
+            wifiDirectManager.openWiFiDirect()
+        }
     }
 
     fun showToast(message: String) {

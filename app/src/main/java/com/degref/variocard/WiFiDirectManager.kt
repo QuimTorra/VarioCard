@@ -13,10 +13,14 @@ import android.util.Log
 import androidx.annotation.RequiresApi
 import androidx.compose.ui.tooling.data.Group
 import androidx.core.app.ActivityCompat
+import kotlinx.coroutines.Deferred
 import kotlinx.coroutines.DelicateCoroutinesApi
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.GlobalScope
+import kotlinx.coroutines.async
+import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.runBlocking
 import java.io.InputStream
 import java.net.InetAddress
 import java.net.InetSocketAddress
@@ -31,7 +35,6 @@ class WiFiDirectManager(private val context: Context, private val activity: Main
     private var fs: FileServerAsyncTask = FileServerAsyncTask(context)
     private var isGroupOwner: Boolean? = null
     private var serverAddress: InetAddress? = null
-    private var deviceName: String = ""
     //private var groupOwnerSemaphore: CountDownLatch = CountDownLatch(1)
     private var deviceNameSemaphore: CountDownLatch = CountDownLatch(1)
     //MN: Reduce duplicated code, check and request permissions
@@ -92,48 +95,53 @@ class WiFiDirectManager(private val context: Context, private val activity: Main
     }
 
     fun stopServer() {
-        fs!!.stopServer()
+        fs.stopServer()
     }
 
     @SuppressLint("MissingPermission")
     @RequiresApi(Build.VERSION_CODES.TIRAMISU)
-    fun getDeviceName() {
-        if(!arePermissionsOk()) Log.d("MONDONGO", "permissions not okey")
+    suspend fun getDeviceName(): String = coroutineScope {
+        if (!arePermissionsOk()) Log.d("MONDONGO", "permissions not okey")
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-            startWifiDirectGroup()
+            var deviceName = "default deviceName"
+            val groupDeferred = async(Dispatchers.IO) {
+                startWifiDirectGroup()
+            }
+            groupDeferred.await()
             wifiP2pManager.requestDeviceInfo(channel) { device ->
                 if (device != null) {
                     deviceName = device.deviceName
                     Log.d("MONDONGO","0. Found device name $deviceName")
                 }
                 else Log.d("MONDONGO", "0 Not found device :(")
+            }
+            val groupDeferredClosing = async(Dispatchers.IO) {
                 closeWifiDirectGroup()
             }
+            groupDeferredClosing.await()
+            deviceName
         }
         else {
             Log.d("MONDONGO", "0. This device is old")
-            deviceName = "HUAWEI Mate 9"
+            "HUAWEI Mate 9"
         }
     }
 
-    @RequiresApi(Build.VERSION_CODES.TIRAMISU)
-    fun checkDeviceName(): String {
-        getDeviceName()
-        deviceNameSemaphore.await()
-        Log.d("MONDONGO","NAME (once waited): $deviceName")
-        return deviceName
-    }
+//    @OptIn(DelicateCoroutinesApi::class)
+//    @RequiresApi(Build.VERSION_CODES.TIRAMISU)
+//    suspend fun checkDeviceName(): String {
+//        val deviceName = async { getDeviceName() }
+//        Log.d("MONDONGO","NAME (once waited): $deviceName")
+//        return deviceName
+//    }
 
     private fun closeWifiDirectGroup() {
         wifiP2pManager.removeGroup(channel, object : WifiP2pManager.ActionListener {
             override fun onSuccess() {
                 Log.d("MONDONGO","0.1 Group deleted :)")
-                deviceNameSemaphore.countDown()
             }
 
             override fun onFailure(reason: Int) {
-
-                deviceNameSemaphore.countDown()
                 Log.d("MONDONGO", "0.1 Didn't delete group $reason")
             }
         })
@@ -147,11 +155,13 @@ class WiFiDirectManager(private val context: Context, private val activity: Main
             override fun onSuccess() {
                 // Group creation successful
                 Log.d("MONDONGO","2. Group created :)")
+                deviceNameSemaphore.countDown()
             }
 
             override fun onFailure(reason: Int) {
                 // Group creation failed
                 Log.d("MONDONGO", "2. Cannot create group ${reason.toString()}")
+                deviceNameSemaphore.countDown()
             }
         })
     }
