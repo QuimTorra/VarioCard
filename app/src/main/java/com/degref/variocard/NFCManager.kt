@@ -25,9 +25,8 @@ class NFCManager(
     private lateinit var wiFiDirectManager: WiFiDirectManager
     @RequiresApi(Build.VERSION_CODES.TIRAMISU)
     fun sendNfcMessage(deviceName: String) {
-        Log.d("MONDONGO", "* DEVICE: $deviceName")
         val sendIntent = Intent(context, VarioCardApduService::class.java)
-        Log.d("MONDONGO", "3. (sender) gotDeviceName $deviceName")
+        Log.d("MONDONGO", "4. (sender) gotDeviceName $deviceName")
         sendIntent.putExtra("ndefMessage", deviceName)
         activity.startService(sendIntent)
     }
@@ -60,6 +59,7 @@ class NFCManager(
     }
 
     private inner class NfcCallback : NfcAdapter.ReaderCallback {
+        @RequiresApi(Build.VERSION_CODES.TIRAMISU)
         override fun onTagDiscovered(tag: Tag?) {
             if (!activity.isSenderActive) {
                 Log.d("MONDONGO", "HEYYYYYYYYYYYYYYYYYY")

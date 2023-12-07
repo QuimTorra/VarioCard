@@ -1,15 +1,9 @@
 package com.degref.variocard
 
-import android.Manifest
 import android.content.BroadcastReceiver
 import android.content.IntentFilter
-import android.content.pm.PackageManager
-import android.net.wifi.p2p.WifiP2pConfig
 import android.net.wifi.p2p.WifiP2pManager
-import android.nfc.NdefRecord
 import android.nfc.NfcAdapter
-import android.nfc.Tag
-import android.nfc.tech.Ndef
 import android.os.Build
 import android.os.Bundle
 import android.util.Log
@@ -39,21 +33,9 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
-import androidx.core.app.ActivityCompat
-import com.degref.variocard.Utils.parseTextrecordPayload
+import androidx.lifecycle.lifecycleScope
 import com.degref.variocard.ui.theme.VarioCardTheme
-import kotlinx.coroutines.Deferred
-import kotlinx.coroutines.DelicateCoroutinesApi
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.GlobalScope
-import kotlinx.coroutines.async
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.runBlocking
-import kotlinx.coroutines.withContext
-import java.net.InetAddress
-import java.net.InetSocketAddress
-import java.net.Socket
-import java.util.Arrays
 
 
 class MainActivity : ComponentActivity() {
@@ -63,8 +45,6 @@ class MainActivity : ComponentActivity() {
     var isSenderActive by mutableStateOf(true)
     private lateinit var nfcManager: NFCManager
     private lateinit var wifiDirectManager: WiFiDirectManager
-    private lateinit var wifiP2pManager: WifiP2pManager
-    private lateinit var channel: WifiP2pManager.Channel
     private lateinit var wifiDirectReceiver: BroadcastReceiver
     private lateinit var intentFilter: IntentFilter
 
@@ -73,7 +53,7 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContent {
-            VarioCardTheme() {
+            VarioCardTheme {
                 Surface(
                     modifier = Modifier.fillMaxSize(),
                     color = MaterialTheme.colorScheme.background
@@ -102,7 +82,7 @@ class MainActivity : ComponentActivity() {
 
 
     private fun initializeWiFiDirectReceiver() {
-        wifiDirectReceiver = WiFiDirectReceiver(wifiDirectManager)
+        wifiDirectReceiver = WiFiDirectReceiver(wifiDirectManager, this@MainActivity)
         intentFilter = IntentFilter()
 
         // Add necessary Wi-Fi Direct action filters
@@ -132,7 +112,7 @@ class MainActivity : ComponentActivity() {
             verticalArrangement = Arrangement.Center
         ) {
             // Button to toggle between sender and reader modes
-            Row(){
+            Row {
                 Button(
                     onClick = {
                         activateSender()
@@ -180,11 +160,14 @@ class MainActivity : ComponentActivity() {
     @RequiresApi(Build.VERSION_CODES.TIRAMISU)
     private fun activateSender() {
         nfcManager.stopReaderMode()
-        val deviceName = wifiDirectManager.getDeviceName()
-        Log.d("MONDONGO", deviceName)
-        nfcManager.sendNfcMessage(deviceName)
-        wifiDirectManager.openWiFiDirect()
+        lifecycleScope.launch {
+            val deviceName = wifiDirectManager.getDeviceName()
+            Log.d("MONDONGO", deviceName)
 
+            // Now that we have the deviceName, update the UI or perform other operations
+            nfcManager.sendNfcMessage(deviceName)
+            wifiDirectManager.openWiFiDirect()
+        }
     }
 
     fun showToast(message: String) {
