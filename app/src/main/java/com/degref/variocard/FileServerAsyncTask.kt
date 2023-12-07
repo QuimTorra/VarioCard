@@ -60,7 +60,7 @@ class FileServerAsyncTask(
                     outputStream.close()
                     client.close()
                 } catch (e: Exception) {
-                        Log.e("FileServerAsyncTask", "Error in server: ${e.message}")
+                    Log.e("FileServerAsyncTask", "Error in server: ${e.message}")
                 }
             }
         } catch (e: Exception) {

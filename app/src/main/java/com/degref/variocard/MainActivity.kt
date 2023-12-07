@@ -19,6 +19,7 @@ import androidx.activity.compose.setContent
 import androidx.annotation.RequiresApi
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -55,15 +56,14 @@ class MainActivity : ComponentActivity() {
     // Pls work
     private var sendingMessage by mutableStateOf("No message sent")
     private var receivedMessage by mutableStateOf("No message received")
-    private var isSenderActive by mutableStateOf(true)
+    public var isSenderActive by mutableStateOf(true)
     private lateinit var nfcManager: NFCManager
     private lateinit var wifiDirectManager: WiFiDirectManager
     private lateinit var wifiP2pManager: WifiP2pManager
     private lateinit var channel: WifiP2pManager.Channel
     private lateinit var wifiDirectReceiver: BroadcastReceiver
     private lateinit var intentFilter: IntentFilter
-    private lateinit var serverAddress: InetAddress
-    private var deviceName: String = ""
+
 
     @RequiresApi(Build.VERSION_CODES.TIRAMISU)
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -82,16 +82,16 @@ class MainActivity : ComponentActivity() {
         nfcManager = NFCManager(this, this@MainActivity)
 
         initializeWiFiDirectReceiver()
-        wifiDirectManager.getDeviceName()
+        //wifiDirectManager.getDeviceName()
 
         // Set up NFC for HCE
         val nfcAdapter = NfcAdapter.getDefaultAdapter(this)
         nfcAdapter?.let {
             if (!it.isEnabled) {
                 showToast("NFC is not enabled")
-            } else {
-                startReaderMode()
-            }
+            } /*else {
+                nfcManager.startReaderMode(wifiDirectManager)
+            }*/
         }
     }
 
@@ -128,12 +128,24 @@ class MainActivity : ComponentActivity() {
             verticalArrangement = Arrangement.Center
         ) {
             // Button to toggle between sender and reader modes
-            Button(onClick = {
-                toggleNfcMode()
-            }) {
-                Text(if (isSenderActive) "Sending" else "Reading")
+            Row(){
+                Button(
+                    onClick = {
+                        activateSender()
+                    },
+                    modifier = Modifier.weight(1f).padding(end = 8.dp)
+                ) {
+                    Text("Sender")
+                }
+                Button(
+                    onClick = {
+                        activateReader()
+                    },
+                    modifier = Modifier.weight(1f).padding(end = 8.dp)
+                ) {
+                    Text("Reader")
+                }
             }
-
             // Input field for entering the message to send
             Spacer(modifier = Modifier.height(16.dp))
             TextField(
@@ -156,26 +168,33 @@ class MainActivity : ComponentActivity() {
         }
     }
 
-    private fun stopReaderMode() {
-        val nfcAdapter = NfcAdapter.getDefaultAdapter(this)
-        nfcAdapter?.disableReaderMode(this)
-    }
-
     @RequiresApi(Build.VERSION_CODES.TIRAMISU)
     private fun toggleNfcMode() {
         // Toggle between sender and reader modes
         isSenderActive = !isSenderActive
         if (isSenderActive) {
-            stopReaderMode()
-            nfcManager.sendNfcMessage("deg")
+            nfcManager.stopReaderMode()
+            nfcManager.sendNfcMessage(wifiDirectManager.checkDeviceName())
             wifiDirectManager.openWiFiDirect()
         } else {
-            startReaderMode()
+            nfcManager.startReaderMode(wifiDirectManager)
             wifiDirectManager.stopServer()
         }
     }
 
-    private fun showToast(message: String) {
+    private fun activateReader(){
+        nfcManager.startReaderMode(wifiDirectManager)
+        wifiDirectManager.stopServer()
+    }
+
+    @RequiresApi(Build.VERSION_CODES.TIRAMISU)
+    private fun activateSender(){
+        nfcManager.stopReaderMode()
+        nfcManager.sendNfcMessage(wifiDirectManager.checkDeviceName())
+        wifiDirectManager.openWiFiDirect()
+    }
+
+    fun showToast(message: String) {
         runOnUiThread {
             Toast.makeText(this, message, Toast.LENGTH_SHORT).show()
         }
@@ -184,9 +203,9 @@ class MainActivity : ComponentActivity() {
     override fun onResume() {
         super.onResume()
         if (!isSenderActive) {
-            startReaderMode()
+            nfcManager.startReaderMode(wifiDirectManager)
         } else {
-            stopReaderMode()
+            nfcManager.stopReaderMode()
         }
     }
 
@@ -194,98 +213,7 @@ class MainActivity : ComponentActivity() {
         super.onPause()
         NfcAdapter.getDefaultAdapter(this)?.disableForegroundDispatch(this)
         if (!isSenderActive) {
-            stopReaderMode()
-        }
-    }
-
-    private fun connectWifiDirect(deviceName: String) {
-        if (ActivityCompat.checkSelfPermission(
-                this,
-                Manifest.permission.ACCESS_FINE_LOCATION
-            ) != PackageManager.PERMISSION_GRANTED && ActivityCompat.checkSelfPermission(
-                this,
-                Manifest.permission.NEARBY_WIFI_DEVICES
-            ) != PackageManager.PERMISSION_GRANTED
-        ) {
-            Log.d("MONDONGO", "2. (reader) I no permission")
-            // TODO: Consider calling
-            //    ActivityCompat#requestPermissions
-            return
-        }
-        Log.d("MONDONGO", "2. (reader) trying to connect to $deviceName")
-        wifiP2pManager.requestPeers(channel) { peers ->
-            Log.d("MONDONGO", "3. (reader) devicesList: ${peers.deviceList}")
-            val deviceA = peers.deviceList.firstOrNull { it.deviceName == deviceName }
-            if (deviceA != null) {
-                Log.d("MONDONGO", "4. (reader) Found device ${deviceA.deviceName}")
-            }
-            else Log.d("MONDONGO", "4. (reader) Device is null :(")
-            if (deviceA != null) {
-                val config = WifiP2pConfig()
-                config.deviceAddress = deviceA.deviceAddress
-                wifiP2pManager.connect(channel, config, object : WifiP2pManager.ActionListener {
-                    override fun onSuccess() {
-                        Log.d("MONDONGO", "5. (reader) Found device and connected")
-                        sendData(config)
-                    }
-
-                    override fun onFailure(reasonCode: Int) {
-                        Log.d("MONDONGO", "5. (reader) Could not connect $reasonCode")
-                    }
-                })
-            }
-        }
-    }
-
-    @OptIn(DelicateCoroutinesApi::class)
-    private fun sendData(config: WifiP2pConfig) {
-        GlobalScope.launch(Dispatchers.IO) {
-            try {
-                val socket = Socket()
-//                val buf = ByteArray(1024)
-
-                /**
-                 * Create a client socket with the host,
-                 * port, and timeout information.
-                 */
-                socket.bind(null)
-                Log.d("MONDONGO", "Logs of sending data...")
-                Log.d("MONDONGO", "address ${config.deviceAddress}")
-                Log.d("MONDONGO", "Config ${config.deviceAddress}")
-                Log.d("MONDONGO", "End Logs of sending data...")
-                socket.connect(
-                    (InetSocketAddress(serverAddress, 8888)),
-                    500
-                )
-                Log.d("MONDONGO", "deviceAddress....")
-
-                /**
-                 * Create a byte stream from a message and pipe it to the output stream
-                 * of the socket. This data is retrieved by the server device.
-                 */
-                val outputStream = socket.getOutputStream()
-                val message = "Hello, WifiDirect working!"
-                outputStream.write(message.toByteArray())
-
-                // If you have an InputStream, you can uncomment the following lines
-                // val cr = applicationContext.contentResolver
-                // val inputStream: InputStream? = cr.openInputStream(Uri.parse("path/to/picture.jpg"))
-                // while (inputStream?.read(buf).also { len = it } != -1) {
-                //     outputStream.write(buf, 0, len)
-                // }
-                outputStream.close()
-                // inputStream?.close()
-
-                /**
-                 * Clean up any open sockets when done
-                 * transferring or if an exception occurred.
-                 */
-                socket.takeIf { it.isConnected }?.apply {
-                    close()
-                }
-            } catch (e: Exception) {
-                Log.d("MONDONGO", "exception raised: $e")
-            }
+            nfcManager.stopReaderMode()
         }
     }
 }

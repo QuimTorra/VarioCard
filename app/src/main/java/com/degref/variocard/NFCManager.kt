@@ -13,6 +13,7 @@ import android.os.AsyncTask
 import android.os.Build
 import android.os.Bundle
 import android.util.Log
+import android.widget.Toast
 import androidx.annotation.RequiresApi
 import androidx.core.app.ActivityCompat
 import java.util.Arrays
@@ -21,7 +22,7 @@ class NFCManager(
     private val context: Context,
     private val activity: MainActivity
     ) {
-
+    private lateinit var wiFiDirectManager: WiFiDirectManager
     @RequiresApi(Build.VERSION_CODES.TIRAMISU)
     fun sendNfcMessage(deviceName: String) {
         Log.d("MONDONGO", "* DEVICE: $deviceName")
@@ -31,8 +32,10 @@ class NFCManager(
         activity.startService(sendIntent)
     }
 
-    fun startReaderMode() {
-        val nfcAdapter = NfcAdapter.getDefaultAdapter(this)
+    fun startReaderMode(wiFiDirectManager: WiFiDirectManager) {
+        wiFiDirectManager.stopServer()
+        this.wiFiDirectManager = wiFiDirectManager
+        val nfcAdapter = NfcAdapter.getDefaultAdapter(context)
         val options = Bundle()
         // Work around for some broken Nfc firmware implementations that poll the card too fast
         options.putInt(NfcAdapter.EXTRA_READER_PRESENCE_CHECK_DELAY, 1000)
@@ -49,10 +52,15 @@ class NFCManager(
         )
     }
 
+    fun stopReaderMode() {
+        val nfcAdapter = NfcAdapter.getDefaultAdapter(context)
+        nfcAdapter?.disableReaderMode(activity)
+    }
+
     private inner class NfcCallback : NfcAdapter.ReaderCallback {
         override fun onTagDiscovered(tag: Tag?) {
-            if (!isSenderActive) {
-                showToast("Read a tag :)")
+            if (!activity.isSenderActive) {
+                activity.showToast("Read a tag :)")
                 val mNdef = Ndef.get(tag)
                 if (mNdef != null) {
                     val mNdefMessage = mNdef.cachedNdefMessage
@@ -69,7 +77,8 @@ class NFCManager(
                             }
                             val finalNdefText = ndefText
                             Log.d("MONDONGO", "1. (reader) received: $finalNdefText")
-                            connectWifiDirect(finalNdefText)
+                            wiFiDirectManager.openWiFiDirect()
+                            wiFiDirectManager.connectWifiDirect(finalNdefText)
                         }
                     }
                 }
