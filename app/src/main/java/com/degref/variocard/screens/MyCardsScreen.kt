@@ -27,6 +27,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavHostController
 import com.degref.variocard.components.CardListItem
+import com.degref.variocard.components.ListCards
 import com.degref.variocard.data.Card
 
 var myOwnCards: List<Card> by mutableStateOf(
@@ -45,16 +46,7 @@ fun MyCardsScreen(navController: NavHostController) {
             modifier = Modifier.fillMaxSize()
         ) {
             TopBar(navController)
-            LazyColumn(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(16.dp)
-            ) {
-                items(myOwnCards) { card ->
-                    CardListItem(card = card, navController = navController)
-                    Spacer(modifier = Modifier.height(8.dp))
-                }
-            }
+            ListCards(myOwnCards, navController)
             // Resto del contenido de tu pantalla debajo de la barra
         }
     }
