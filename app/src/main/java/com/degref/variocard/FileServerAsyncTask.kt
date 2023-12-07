@@ -4,14 +4,12 @@ import android.content.Context
 import android.content.Intent
 import android.net.Uri
 import android.os.AsyncTask
-import android.os.Environment
 import android.util.Log
-import android.widget.TextView
 import java.io.BufferedReader
 import java.io.File
 import java.io.InputStreamReader
+import java.io.OutputStream
 import java.net.ServerSocket
-import java.net.SocketTimeoutException
 
 
 class FileServerAsyncTask(
@@ -30,7 +28,10 @@ class FileServerAsyncTask(
                 try {
                     val client = serverSocket!!.accept()
                     Log.d("MONDONGO", "Accepted")
-                    val f = File(
+                    if (serverSocket!!.isBound) Log.d("MONDONGO", "Server bound")
+                    if(!client.isClosed) Log.d("MONDONGO", "Client not closed")
+                    if(client.isConnected) Log.d("MONDONGO", "Client connected")
+                    /*val f = File(
                         Environment.getExternalStorageDirectory().absolutePath +
                                 "/${context.packageName}/wifip2pshared-${System.currentTimeMillis()}.txt"
                     )
@@ -39,17 +40,24 @@ class FileServerAsyncTask(
                     dirs.takeIf { it.doesNotExist() }?.apply {
                         mkdirs()
                     }
-                    f.createNewFile()
+                    f.createNewFile()*/
 
-                    val inputStream = client.getInputStream()
-                    val reader = InputStreamReader(inputStream)
-                    val bufferedReader = BufferedReader(reader)
+                    val outputStream: OutputStream = client.getOutputStream()
+                    val dataToSend = "Hello, this is the server!"
+                    outputStream.write(dataToSend.toByteArray())
 
-                    val text = bufferedReader.readLine()
+                    /*val inputStream = client.getInputStream()
+                    val reader = BufferedReader(InputStreamReader(inputStream))
+                    val receivedData = StringBuilder()
+                    var line: String?
+                    while (reader.readLine().also { line = it } != null) {
+                        receivedData.append(line)
+                    }*/
 
                     // Write the received text to a file
-                    f.writeText(text)
+                    /*f.writeText(text)*/
                     Log.d("MONDONGO", "Written a file")
+                    outputStream.close()
                     client.close()
                 } catch (e: Exception) {
                         Log.e("FileServerAsyncTask", "Error in server: ${e.message}")
@@ -58,6 +66,7 @@ class FileServerAsyncTask(
         } catch (e: Exception) {
             Log.e("FileServerAsyncTask", "Error in server setup: ${e.message}")
         } finally {
+            Log.d("MONDONGO", "Reached end of transmission, data theoretically sent")
             serverSocket?.close()
         }
 
