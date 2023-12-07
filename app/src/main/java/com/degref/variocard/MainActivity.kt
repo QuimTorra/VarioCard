@@ -1,5 +1,6 @@
 package com.degref.variocard
 
+import MyCardsScreen
 import android.Manifest
 import android.annotation.SuppressLint
 import android.content.BroadcastReceiver
@@ -24,6 +25,7 @@ import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.annotation.RequiresApi
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
@@ -73,8 +75,8 @@ import java.net.ServerSocket
 import java.net.Socket
 import java.util.Arrays
 import androidx.navigation.compose.rememberNavController
+import com.degref.variocard.screens.AddCardScreen
 import com.degref.variocard.screens.ListScreen
-import com.degref.variocard.screens.MyCardsScreen
 
 
 class MainActivity : ComponentActivity() {
@@ -162,6 +164,7 @@ class MainActivity : ComponentActivity() {
     @Composable
     fun MainScreen(navController: NavHostController) {
         Scaffold(
+            Modifier.background(Color.DarkGray),
             bottomBar = {
                 BottomNavigation {
                     BottomNavigationItem(
@@ -190,7 +193,10 @@ class MainActivity : ComponentActivity() {
                     ListScreen()
                 }
                 composable("myCards") {
-                    MyCardsScreen()
+                    MyCardsScreen(navController)
+                }
+                composable("addCard") {
+                    AddCardScreen(navController)
                 }
             }
         }
