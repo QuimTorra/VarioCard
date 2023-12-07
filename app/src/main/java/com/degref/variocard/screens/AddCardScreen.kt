@@ -1,5 +1,7 @@
 package com.degref.variocard.screens
 
+import Card
+import addCard
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Column
@@ -153,7 +155,8 @@ fun AddCardScreen(
                   formValidated = true
 
                   if (formCompleted) {
-                    navController.navigateUp()
+                      addCard(Card(name, phone, email, company, additionalInfo))
+                      navController.navigateUp()
                   }
             },
             modifier = Modifier
