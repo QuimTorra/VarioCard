@@ -7,6 +7,7 @@ import android.content.Intent
 import android.content.IntentFilter
 import android.content.pm.PackageManager
 import android.net.wifi.p2p.WifiP2pConfig
+import android.net.wifi.p2p.WifiP2pConfig.GROUP_OWNER_INTENT_MAX
 import android.net.wifi.p2p.WifiP2pConfig.GROUP_OWNER_INTENT_MIN
 import android.net.wifi.p2p.WifiP2pInfo
 import android.net.wifi.p2p.WifiP2pManager
@@ -67,18 +68,21 @@ class MainActivity : ComponentActivity() {
     private var sendingMessage by mutableStateOf("No message sent")
     private var receivedMessage by mutableStateOf("No message received")
     private var isSenderActive by mutableStateOf(true)
+    private var isGroupOwner: Boolean? = null
     private lateinit var wifiP2pManager: WifiP2pManager
     private lateinit var wifiInfoListener: WifiP2pManager.ChannelListener
     private lateinit var channel: WifiP2pManager.Channel
     private lateinit var wifiDirectReceiver: BroadcastReceiver
     private lateinit var intentFilter: IntentFilter
-    private var fs: FileServerAsyncTask = FileServerAsyncTask(this)
+    //private var fs: FileServerAsyncTask = FileServerAsyncTask(this)
+    private var fs: FileServerAsyncTask? = null
     private lateinit var serverAddress: InetAddress
     private var deviceName: String = ""
 
     @RequiresApi(Build.VERSION_CODES.TIRAMISU)
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+
         setContent {
             VarioCardTheme() {
                 Surface(
@@ -107,7 +111,7 @@ class MainActivity : ComponentActivity() {
 
     fun onConnectionInfoAvailable(info: WifiP2pInfo) {
         serverAddress = info.groupOwnerAddress
-        val isGroupOwner = info.isGroupOwner
+        isGroupOwner = info.isGroupOwner
 
         // Use groupOwnerAddress and isGroupOwner as needed
         Log.d("MONDONGO","Group Owner - $isGroupOwner, Group Owner Address - $serverAddress")
@@ -203,7 +207,7 @@ class MainActivity : ComponentActivity() {
             stopReaderMode()
             sendNfcMessage()
         } else {
-            fs.stopServer()
+            if(fs != null) fs!!.stopServer()
             startReaderMode()
         }
     }
@@ -253,8 +257,14 @@ class MainActivity : ComponentActivity() {
         }
         wifiP2pManager.discoverPeers(channel, object : WifiP2pManager.ActionListener {
             override fun onSuccess() {
-                fs = FileServerAsyncTask(this@MainActivity,)
-                fs.executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR)
+                if(isGroupOwner != null){
+                    if(isGroupOwner!!){
+                        fs = FileServerAsyncTask(this@MainActivity,)
+                        fs!!.executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR)
+                    }
+                    else sendData()
+                }
+
                 Log.d("MONDONGO", "4. (sender) Discovering devices")
             }
 
@@ -287,6 +297,7 @@ class MainActivity : ComponentActivity() {
         }
     }
 
+    @RequiresApi(Build.VERSION_CODES.R)
     private fun connectWifiDirect(deviceName: String) {
         if (ActivityCompat.checkSelfPermission(
                 this,
@@ -312,10 +323,17 @@ class MainActivity : ComponentActivity() {
             if (deviceA != null) {
                 val config = WifiP2pConfig()
                 config.deviceAddress = deviceA.deviceAddress
+                config.groupOwnerIntent = GROUP_OWNER_INTENT_MAX
                 wifiP2pManager.connect(channel, config, object : WifiP2pManager.ActionListener {
                     override fun onSuccess() {
                         Log.d("MONDONGO", "5. (reader) Found device and connected")
-                        sendData(config)
+                        if(isGroupOwner != null){
+                            if(isGroupOwner!!) {
+                                fs = FileServerAsyncTask(this@MainActivity,)
+                                fs!!.executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR)
+                            }
+                            else sendData()
+                        }
                     }
 
                     override fun onFailure(reasonCode: Int) {
@@ -327,7 +345,8 @@ class MainActivity : ComponentActivity() {
     }
 
     @OptIn(DelicateCoroutinesApi::class)
-    private fun sendData(config: WifiP2pConfig) {
+    private fun sendData() {
+        Log.d("MONDONGO", "Started sender")
         GlobalScope.launch(Dispatchers.IO) {
             try {
                 val socket = Socket()
@@ -339,8 +358,7 @@ class MainActivity : ComponentActivity() {
                  */
                 socket.bind(null)
                 Log.d("MONDONGO", "Logs of sending data...")
-                Log.d("MONDONGO", "address ${config.deviceAddress}")
-                Log.d("MONDONGO", "Config ${config.deviceAddress}")
+                Log.d("MONDONGO", "address ${serverAddress}")
                 Log.d("MONDONGO", "End Logs of sending data...")
                 socket.connect(
                     (InetSocketAddress(serverAddress, 8888)),
@@ -435,6 +453,7 @@ class MainActivity : ComponentActivity() {
     }
 
     private inner class NfcCallback : NfcAdapter.ReaderCallback {
+        @RequiresApi(Build.VERSION_CODES.R)
         override fun onTagDiscovered(tag: Tag?) {
             if (!isSenderActive) {
                 showToast("Read a tag :)")
