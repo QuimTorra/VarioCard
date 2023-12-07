@@ -346,15 +346,26 @@ class MainActivity : ComponentActivity() {
                     (InetSocketAddress(serverAddress, 8888)),
                     500
                 )
+                if(socket.isConnected) Log.d("MONDONGO", "Socket is conneeeeeeected :)")
+                Log.d("MyApp", "Server socket bound: ${socket.isBound}")
                 Log.d("MONDONGO", "deviceAddress....")
 
                 /**
                  * Create a byte stream from a message and pipe it to the output stream
                  * of the socket. This data is retrieved by the server device.
                  */
-                val outputStream = socket.getOutputStream()
+                /*val outputStream = socket.getOutputStream()
                 val message = "Hello, WifiDirect working!"
-                outputStream.write(message.toByteArray())
+                outputStream.write(message.toByteArray())*/
+                val inputStream: InputStream = socket.getInputStream()
+                val buffer = ByteArray(1024)
+                val bytesRead = inputStream.read(buffer)
+
+                // Convert the received bytes to a String
+                val receivedData = String(buffer, 0, bytesRead)
+
+                // Process the received data as needed
+                Log.d("MONDONGO","Received data: $receivedData")
 
                 // If you have an InputStream, you can uncomment the following lines
                 // val cr = applicationContext.contentResolver
@@ -362,8 +373,8 @@ class MainActivity : ComponentActivity() {
                 // while (inputStream?.read(buf).also { len = it } != -1) {
                 //     outputStream.write(buf, 0, len)
                 // }
-                outputStream.close()
-                // inputStream?.close()
+                /*outputStream.close()*/
+                inputStream?.close()
 
                 /**
                  * Clean up any open sockets when done
@@ -419,7 +430,7 @@ class MainActivity : ComponentActivity() {
         }
         else {
             Log.d("MONDONGO", "0. This device is old")
-            deviceName = "HUAWEI Mate 9"
+            deviceName = "Galaxy S7"
         }
     }
 

@@ -20,6 +20,7 @@ class WiFiDirectReceiver(
                     intent.getParcelableExtra<WifiP2pInfo>(WifiP2pManager.EXTRA_WIFI_P2P_INFO)
                 if (wifiP2pInfo != null && wifiP2pInfo.groupFormed) {
                     activity.onConnectionInfoAvailable(wifiP2pInfo)
+                    Log.d("MONDONGO",wifiP2pInfo.toString())
                     Log.d("MONDONGO", "Wi-Fi P2P connection success!")
                 } else {
                     // Wi-Fi P2P connection is lost (failure)
