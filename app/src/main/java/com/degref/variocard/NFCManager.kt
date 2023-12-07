@@ -33,6 +33,7 @@ class NFCManager(
     }
 
     fun startReaderMode(wiFiDirectManager: WiFiDirectManager) {
+        activity.isSenderActive = false
         wiFiDirectManager.stopServer()
         this.wiFiDirectManager = wiFiDirectManager
         val nfcAdapter = NfcAdapter.getDefaultAdapter(context)
@@ -53,6 +54,7 @@ class NFCManager(
     }
 
     fun stopReaderMode() {
+        activity.isSenderActive = true
         val nfcAdapter = NfcAdapter.getDefaultAdapter(context)
         nfcAdapter?.disableReaderMode(activity)
     }
@@ -60,6 +62,7 @@ class NFCManager(
     private inner class NfcCallback : NfcAdapter.ReaderCallback {
         override fun onTagDiscovered(tag: Tag?) {
             if (!activity.isSenderActive) {
+                Log.d("MONDONGO", "HEYYYYYYYYYYYYYYYYYY")
                 activity.showToast("Read a tag :)")
                 val mNdef = Ndef.get(tag)
                 if (mNdef != null) {

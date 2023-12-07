@@ -35,10 +35,11 @@ class WiFiDirectManager(private val context: Context, private val activity: Main
     private var fs: FileServerAsyncTask = FileServerAsyncTask(context)
     private var isGroupOwner: Boolean? = null
     private var serverAddress: InetAddress? = null
-    //private var groupOwnerSemaphore: CountDownLatch = CountDownLatch(1)
-    private var deviceNameSemaphore: CountDownLatch = CountDownLatch(1)
+    private var isGroupFormed: Boolean = false
+    private var deviceName: String = ""
+
     //MN: Reduce duplicated code, check and request permissions
-    private fun arePermissionsOk(): Boolean{
+    fun arePermissionsOk(): Boolean{
         if (ActivityCompat.checkSelfPermission(
                 context,
                 Manifest.permission.ACCESS_FINE_LOCATION
@@ -63,7 +64,7 @@ class WiFiDirectManager(private val context: Context, private val activity: Main
     fun onConnectionInfoAvailable(info: WifiP2pInfo) {
         serverAddress = info.groupOwnerAddress
         isGroupOwner = info.isGroupOwner
-        //groupOwnerSemaphore.countDown()
+        isGroupFormed = info.groupFormed
         // Use groupOwnerAddress and isGroupOwner as needed
         Log.d("MONDONGO","Group Owner - $isGroupOwner, Group Owner Address - $serverAddress")
     }
@@ -74,7 +75,6 @@ class WiFiDirectManager(private val context: Context, private val activity: Main
         wifiP2pManager.discoverPeers(channel, object : WifiP2pManager.ActionListener {
             override fun onSuccess() {
                 Log.d("MONDONGO", "4. (sender) Discovering devices")
-                //groupOwnerSemaphore.await()
                 if (isGroupOwner != null) {
                     Log.d("MONDONGO", "Entering not being null for sender...")
                    if (isGroupOwner!!) {
@@ -83,7 +83,6 @@ class WiFiDirectManager(private val context: Context, private val activity: Main
                     } else {
                         sendData()
                     }
-                    //groupOwnerSemaphore = Semaphore(0)
                 }
                 else Log.d("MONDONGO", "Group is being null at this moment for sender")
             }
@@ -100,14 +99,14 @@ class WiFiDirectManager(private val context: Context, private val activity: Main
 
     @SuppressLint("MissingPermission")
     @RequiresApi(Build.VERSION_CODES.TIRAMISU)
-    suspend fun getDeviceName(): String = coroutineScope {
+    fun getDeviceName(): String {
         if (!arePermissionsOk()) Log.d("MONDONGO", "permissions not okey")
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-            var deviceName = "default deviceName"
-            val groupDeferred = async(Dispatchers.IO) {
-                startWifiDirectGroup()
-            }
-            groupDeferred.await()
+            //var deviceName = "default deviceName"
+            startWifiDirectGroup()
+            Log.d("MONDONGO", "Deadline")
+            //while(!isGroupFormed) {}
+            Log.d("MONDONGO", "No Deadline")
             wifiP2pManager.requestDeviceInfo(channel) { device ->
                 if (device != null) {
                     deviceName = device.deviceName
@@ -115,15 +114,13 @@ class WiFiDirectManager(private val context: Context, private val activity: Main
                 }
                 else Log.d("MONDONGO", "0 Not found device :(")
             }
-            val groupDeferredClosing = async(Dispatchers.IO) {
-                closeWifiDirectGroup()
-            }
-            groupDeferredClosing.await()
-            deviceName
+            closeWifiDirectGroup()
+            //while(isGroupFormed){}
+            return deviceName
         }
         else {
             Log.d("MONDONGO", "0. This device is old")
-            "HUAWEI Mate 9"
+            return "HUAWEI Mate 9"
         }
     }
 
@@ -138,6 +135,7 @@ class WiFiDirectManager(private val context: Context, private val activity: Main
     private fun closeWifiDirectGroup() {
         wifiP2pManager.removeGroup(channel, object : WifiP2pManager.ActionListener {
             override fun onSuccess() {
+                isGroupFormed = false
                 Log.d("MONDONGO","0.1 Group deleted :)")
             }
 
@@ -154,14 +152,13 @@ class WiFiDirectManager(private val context: Context, private val activity: Main
         wifiP2pManager.createGroup(channel, object : WifiP2pManager.ActionListener {
             override fun onSuccess() {
                 // Group creation successful
+                isGroupFormed = true
                 Log.d("MONDONGO","2. Group created :)")
-                deviceNameSemaphore.countDown()
-            }
+             }
 
             override fun onFailure(reason: Int) {
                 // Group creation failed
                 Log.d("MONDONGO", "2. Cannot create group ${reason.toString()}")
-                deviceNameSemaphore.countDown()
             }
         })
     }
@@ -183,7 +180,6 @@ class WiFiDirectManager(private val context: Context, private val activity: Main
                 wifiP2pManager.connect(channel, config, object : WifiP2pManager.ActionListener {
                     override fun onSuccess() {
                         Log.d("MONDONGO", "5. (reader) Found device and connected")
-                        //groupOwnerSemaphore.await()
                         if(isGroupOwner != null){
                             Log.d("MONDONGO", "entering not null for receiver...")
                             if(isGroupOwner!!) {

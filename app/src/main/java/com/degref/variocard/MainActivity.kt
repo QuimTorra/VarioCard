@@ -60,7 +60,7 @@ class MainActivity : ComponentActivity() {
     // Pls work
     private var sendingMessage by mutableStateOf("No message sent")
     private var receivedMessage by mutableStateOf("No message received")
-    public var isSenderActive by mutableStateOf(true)
+    var isSenderActive by mutableStateOf(true)
     private lateinit var nfcManager: NFCManager
     private lateinit var wifiDirectManager: WiFiDirectManager
     private lateinit var wifiP2pManager: WifiP2pManager
@@ -85,6 +85,7 @@ class MainActivity : ComponentActivity() {
         wifiDirectManager = WiFiDirectManager(this, this@MainActivity)
         nfcManager = NFCManager(this, this@MainActivity)
 
+        wifiDirectManager.arePermissionsOk()
         initializeWiFiDirectReceiver()
 
         // Set up NFC for HCE
@@ -92,9 +93,9 @@ class MainActivity : ComponentActivity() {
         nfcAdapter?.let {
             if (!it.isEnabled) {
                 showToast("NFC is not enabled")
-            } /*else {
-                nfcManager.startReaderMode(wifiDirectManager)
-            }*/
+            } else {
+                //nfcManager.startReaderMode(wifiDirectManager)
+            }
         }
     }
 
@@ -173,18 +174,17 @@ class MainActivity : ComponentActivity() {
 
     private fun activateReader(){
         nfcManager.startReaderMode(wifiDirectManager)
-        wifiDirectManager.stopServer()
+        //wifiDirectManager.stopServer()
     }
 
     @RequiresApi(Build.VERSION_CODES.TIRAMISU)
     private fun activateSender() {
         nfcManager.stopReaderMode()
-        runBlocking {
-            val deviceName = wifiDirectManager.getDeviceName()
-            Log.d("MONDONGO", deviceName)
-            nfcManager.sendNfcMessage(deviceName)
-            wifiDirectManager.openWiFiDirect()
-        }
+        val deviceName = wifiDirectManager.getDeviceName()
+        Log.d("MONDONGO", deviceName)
+        nfcManager.sendNfcMessage(deviceName)
+        wifiDirectManager.openWiFiDirect()
+
     }
 
     fun showToast(message: String) {
