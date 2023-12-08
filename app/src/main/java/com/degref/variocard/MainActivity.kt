@@ -153,6 +153,18 @@ class MainActivity : ComponentActivity() {
             Spacer(modifier = Modifier.height(16.dp))
             Text(text = "Received Message:")
             Text(text = receivedMessage, style = MaterialTheme.typography.bodyMedium)
+
+            // Additional button below the "Enter your message" TextField
+            Button(
+                onClick = {
+                    wifiDirectManager.sendMessage(sendingMessage)
+                },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(top = 16.dp)
+            ) {
+                Text("Additional Button")
+            }
         }
     }
 
@@ -195,6 +207,10 @@ class MainActivity : ComponentActivity() {
         if (!isSenderActive) {
             nfcManager.stopReaderMode()
         }
+        lifecycleScope.launch {
+            wifiDirectManager.closeWifiDirectGroup()
+        }
+        wifiDirectManager.stopServer()
     }
 }
 

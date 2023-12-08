@@ -15,22 +15,34 @@ class WiFiDirectReceiver(
     override fun onReceive(context: Context?, intent: Intent?) {
         when (intent?.action) {
             WifiP2pManager.WIFI_P2P_CONNECTION_CHANGED_ACTION -> {
+                Log.d("MONDONGO","New event")
                 val wifiP2pInfo =
                     intent.getParcelableExtra<WifiP2pInfo>(WifiP2pManager.EXTRA_WIFI_P2P_INFO)
                 if (wifiP2pInfo != null && wifiP2pInfo.groupFormed) {
                     manager.onConnectionInfoAvailable(wifiP2pInfo)
                     Log.d("MONDONGO", "Wi-Fi P2P connection success!")
                     if (wifiP2pInfo.isGroupOwner) {
-                        val fs = FileServerAsyncTask(activity)
-                        fs.executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR)
+                        manager.fs = FileServerAsyncTask(context!!,activity)
+                        manager.fs!!.start()
+                        manager.fs!!.sendMessage("Init message")
+                        //fs.executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR)
+                        //fs.stopServer()
                     }
                     else {
                         manager.sendData()
+                        /*manager.cs = ClientMessager(context!!, activity, manager.serverAddress!!)
+                        manager.cs!!.start()
+                        manager.cs!!.sendMessage("Started connection successful")
+                        *///manager.sendClientMessage("Started connection successful")
+
                     }
                 } else {
                     // Wi-Fi P2P connection is lost (failure)
                     Log.d("MONDONGO", "Wi-Fi P2P connection failure!")
                 }
+            }
+            WifiP2pManager.WIFI_P2P_THIS_DEVICE_CHANGED_ACTION -> {
+                Log.d("MONDONGO", "New action")
             }
         }
     }
