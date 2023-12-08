@@ -74,7 +74,7 @@ fun AddCardScreen(
                 .padding(16.dp)
         )
 
-        image = PickImageFromGallery()
+        image = PickImageFromGallery(image)
 
         OutlinedTextField(
             value = name,
@@ -163,9 +163,9 @@ fun formIsCompleted(name: String, phone: String, email: String): Boolean {
 }
 
 @Composable
-fun PickImageFromGallery(): Uri? {
+fun PickImageFromGallery(image: Uri?): Uri? {
     var imageUri by remember {
-        mutableStateOf<Uri?>(null)
+        mutableStateOf<Uri?>(image)
     }
     var context = LocalContext.current
     var bitmap = remember {
