@@ -54,6 +54,7 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.tooling.preview.PreviewParameter
 import androidx.compose.ui.unit.dp
 import androidx.core.app.ActivityCompat
+import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
@@ -75,7 +76,9 @@ import java.net.ServerSocket
 import java.net.Socket
 import java.util.Arrays
 import androidx.navigation.compose.rememberNavController
+import com.degref.variocard.components.SharedViewModel
 import com.degref.variocard.screens.AddCardScreen
+import com.degref.variocard.screens.CardDetailScreen
 import com.degref.variocard.screens.ListScreen
 
 
@@ -155,14 +158,15 @@ class MainActivity : ComponentActivity() {
     @Composable
     fun MainScreenPreview() {
         val navController = rememberNavController()
-        MainScreen(navController)
+        val viewModel: SharedViewModel = viewModel()
+        MainScreen(navController, viewModel)
     }
 
     @SuppressLint("UnusedMaterialScaffoldPaddingParameter")
     @RequiresApi(Build.VERSION_CODES.TIRAMISU)
     // @OptIn(ExperimentalMaterial3Api::class)
     @Composable
-    fun MainScreen(navController: NavHostController) {
+    fun MainScreen(navController: NavHostController, viewModel: SharedViewModel) {
         Scaffold(
             Modifier.background(Color.DarkGray),
             bottomBar = {
@@ -190,13 +194,16 @@ class MainActivity : ComponentActivity() {
         ) {
             NavHost(navController = navController, startDestination = "list") {
                 composable("list") {
-                    ListScreen()
+                    ListScreen(navController, viewModel)
                 }
                 composable("myCards") {
-                    MyCardsScreen(navController)
+                    MyCardsScreen(navController, viewModel)
                 }
                 composable("addCard") {
                     AddCardScreen(navController)
+                }
+                composable("cardDetail") {
+                    CardDetailScreen(navController, viewModel)
                 }
             }
         }

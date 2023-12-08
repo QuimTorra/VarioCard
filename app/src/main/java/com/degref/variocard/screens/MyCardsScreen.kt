@@ -25,19 +25,22 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.ViewModel
 import androidx.navigation.NavHostController
 import com.degref.variocard.components.CardListItem
 import com.degref.variocard.components.ListCards
+import com.degref.variocard.components.SharedViewModel
 import com.degref.variocard.data.Card
 
 var myOwnCards: List<Card> by mutableStateOf(
     listOf(
-        Card("Laura Chavarria Solé", "609007385", "laura.chavarria@estudiantat.upc.edu", "FIB", ""),
-        Card("John Doe", "123456789", "john.doe@example.com", "Company ABC", "")
+        Card("Laura Chavarria Solé", "609007385", "laura.chavarria@estudiantat.upc.edu", "FIB", "", null),
+        Card("John Doe", "123456789", "john.doe@example.com", "Company ABC", "", null)
     )
 )
+
 @Composable
-fun MyCardsScreen(navController: NavHostController) {
+fun MyCardsScreen(navController: NavHostController, viewModel: SharedViewModel) {
     Surface(
         modifier = Modifier.fillMaxSize(),
         color = MaterialTheme.colorScheme.background
@@ -46,7 +49,7 @@ fun MyCardsScreen(navController: NavHostController) {
             modifier = Modifier.fillMaxSize()
         ) {
             TopBar(navController)
-            ListCards(myOwnCards, navController)
+            ListCards(myOwnCards, navController, viewModel)
             // Resto del contenido de tu pantalla debajo de la barra
         }
     }

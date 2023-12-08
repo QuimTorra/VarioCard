@@ -13,14 +13,14 @@ import androidx.navigation.NavHostController
 import com.degref.variocard.data.Card
 
 @Composable
-fun ListCards(cards: List<Card>, navController: NavHostController) {
+fun ListCards(cards: List<Card>, navController: NavHostController, viewModel: SharedViewModel) {
     LazyColumn(
         modifier = Modifier
             .fillMaxSize()
             .padding(16.dp)
     ) {
         items(cards) { card ->
-            CardListItem(card = card, navController = navController)
+            CardListItem(card = card, navController = navController, viewModel = viewModel)
             Spacer(modifier = Modifier.height(8.dp))
         }
     }
