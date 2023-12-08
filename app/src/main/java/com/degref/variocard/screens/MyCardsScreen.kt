@@ -33,10 +33,7 @@ import com.degref.variocard.components.SharedViewModel
 import com.degref.variocard.data.Card
 
 var myOwnCards: List<Card> by mutableStateOf(
-    listOf(
-        Card("Laura Chavarria Solé", "609007385", "laura.chavarria@estudiantat.upc.edu", "FIB", "", null),
-        Card("John Doe", "123456789", "john.doe@example.com", "Company ABC", "", null)
-    )
+    listOf()
 )
 
 @Composable
@@ -48,7 +45,7 @@ fun MyCardsScreen(navController: NavHostController, viewModel: SharedViewModel) 
         Column(
             modifier = Modifier.fillMaxSize()
         ) {
-            TopBar(navController)
+            TopBar(navController, viewModel)
             ListCards(myOwnCards, navController, viewModel)
             // Resto del contenido de tu pantalla debajo de la barra
         }
@@ -57,7 +54,7 @@ fun MyCardsScreen(navController: NavHostController, viewModel: SharedViewModel) 
 
 @SuppressLint("UnusedMaterial3ScaffoldPaddingParameter")
 @Composable
-fun TopBar(navController: NavHostController) {
+fun TopBar(navController: NavHostController, viewModel: SharedViewModel) {
     Box(
         modifier = Modifier
             .fillMaxWidth()
@@ -70,20 +67,24 @@ fun TopBar(navController: NavHostController) {
             color = Color.White,
             modifier = Modifier.padding(16.dp)
         )
-        Icon(
-            imageVector = Icons.Default.AddCircle,
-            contentDescription = null,
-            tint = Color.White,
-            modifier = Modifier
-                .clickable {
-                    navController.navigate("addCard")
-                }
-                .padding(16.dp)
-                .align(Alignment.CenterEnd)
-        )
+        if (myOwnCards.size < 1) {
+            Icon(
+                imageVector = Icons.Default.AddCircle,
+                contentDescription = null,
+                tint = Color.White,
+                modifier = Modifier
+                    .clickable {
+                        viewModel.selectedCard.value = null
+                        navController.navigate("addCard")
+                    }
+                    .padding(16.dp)
+                    .align(Alignment.CenterEnd)
+            )
+        }
     }
 }
 
 fun addCard(newCard: Card) {
-    myOwnCards = myOwnCards + listOf<Card>(newCard)
+    myOwnCards = listOf(newCard)
 }
+

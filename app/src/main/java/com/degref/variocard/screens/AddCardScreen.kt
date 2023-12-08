@@ -38,25 +38,24 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavHostController
+import com.degref.variocard.components.SharedViewModel
 import com.degref.variocard.data.Card
 
 @Composable
 fun AddCardScreen(
-    navController: NavHostController,
-    name: String = "",
-    phone: String = "",
-    email: String = "",
-    company: String = "",
-    additionalInfo: String = "",
-    image: Uri? = null
+    navController: NavHostController, viewModel: SharedViewModel
 ) {
-    var name by remember { mutableStateOf(name) }
-    var phone by remember { mutableStateOf(phone) }
-    var email by remember { mutableStateOf(email) }
-    var company by remember { mutableStateOf(company) }
-    var additionalInfo by remember { mutableStateOf(additionalInfo) }
-    var image by remember { mutableStateOf(image) }
+    var card = viewModel.selectedCard.value
+
+    var id by remember { mutableStateOf(card?.id ?: 1) }
+    var name by remember { mutableStateOf(card?.name ?: "") }
+    var phone by remember { mutableStateOf(card?.phone ?: "") }
+    var email by remember { mutableStateOf(card?.email ?: "") }
+    var company by remember { mutableStateOf(card?.company ?: "") }
+    var additionalInfo by remember { mutableStateOf(card?.additionalInfo ?: "") }
+    var image by remember { mutableStateOf(card?.image ?: null) }
 
     var formValidated by remember { mutableStateOf(false) }
 
@@ -83,12 +82,6 @@ fun AddCardScreen(
                 name = it
             },
             label = { Text("Name") },
-            keyboardActions = KeyboardActions(
-                onDone = {
-                    // Acciones cuando se presiona "Done" en el teclado
-                    // Puedes ocultar el teclado u realizar otras acciones aquí
-                }
-            ),
             isError = formValidated and name.isBlank(),
             modifier = Modifier
                 .fillMaxWidth()
@@ -100,12 +93,6 @@ fun AddCardScreen(
                 phone = it
             },
             label = { Text("Phone number") },
-            keyboardActions = KeyboardActions(
-                onDone = {
-                    // Acciones cuando se presiona "Done" en el teclado
-                    // Puedes ocultar el teclado u realizar otras acciones aquí
-                }
-            ),
             isError = formValidated and phone.isBlank(),
             modifier = Modifier
                 .fillMaxWidth()
@@ -117,12 +104,6 @@ fun AddCardScreen(
                 email = it
             },
             label = { Text("Email") },
-            keyboardActions = KeyboardActions(
-                onDone = {
-                    // Acciones cuando se presiona "Done" en el teclado
-                    // Puedes ocultar el teclado u realizar otras acciones aquí
-                }
-            ),
             isError = formValidated and email.isBlank(),
             modifier = Modifier
                 .fillMaxWidth()
@@ -134,12 +115,6 @@ fun AddCardScreen(
                 company = it
             },
             label = { Text("Company") },
-            keyboardActions = KeyboardActions(
-                onDone = {
-                    // Acciones cuando se presiona "Done" en el teclado
-                    // Puedes ocultar el teclado u realizar otras acciones aquí
-                }
-            ),
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(8.dp)
@@ -151,12 +126,6 @@ fun AddCardScreen(
             },
             label = { Text("Additional information") },
             maxLines = 5,
-            keyboardActions = KeyboardActions(
-                onDone = {
-                    // Acciones cuando se presiona "Done" en el teclado
-                    // Puedes ocultar el teclado u realizar otras acciones aquí
-                }
-            ),
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(8.dp)
@@ -167,8 +136,15 @@ fun AddCardScreen(
                   formValidated = true
 
                   if (formCompleted) {
-                      addCard(Card(name, phone, email, company, additionalInfo, image))
-                      navController.navigateUp()
+                      if (viewModel.listDestination.value != "all") {
+                          addCard(Card(id, name, phone, email, company, additionalInfo, image))
+                          navController.navigate("myCards")
+                      }
+                      else {
+                          editCard(Card(id, name, phone, email, company, additionalInfo, image))
+                          navController.navigate("list")
+                      }
+
                   }
             },
             modifier = Modifier

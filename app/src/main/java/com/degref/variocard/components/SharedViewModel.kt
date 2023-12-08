@@ -6,4 +6,5 @@ import com.degref.variocard.data.Card
 
 class SharedViewModel : ViewModel() {
     val selectedCard = mutableStateOf<Card?>(null)
+    val listDestination = mutableStateOf<String>("")
 }

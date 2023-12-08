@@ -194,13 +194,15 @@ class MainActivity : ComponentActivity() {
         ) {
             NavHost(navController = navController, startDestination = "list") {
                 composable("list") {
+                    viewModel.listDestination.value = "all"
                     ListScreen(navController, viewModel)
                 }
                 composable("myCards") {
+                    viewModel.listDestination.value = "myCards"
                     MyCardsScreen(navController, viewModel)
                 }
                 composable("addCard") {
-                    AddCardScreen(navController)
+                    AddCardScreen(navController, viewModel)
                 }
                 composable("cardDetail") {
                     CardDetailScreen(navController, viewModel)
