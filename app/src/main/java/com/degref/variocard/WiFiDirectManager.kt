@@ -12,9 +12,11 @@ import android.os.Build
 import android.util.Log
 import androidx.annotation.RequiresApi
 import androidx.core.app.ActivityCompat
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.DelicateCoroutinesApi
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.GlobalScope
+import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.io.InputStream
@@ -31,7 +33,7 @@ class WiFiDirectManager(private val context: Context, private val activity: Main
     private var isGroupOwner: Boolean? = null
     private var serverAddress: InetAddress? = null
     private var isGroupFormed: Boolean = false
-    private var deviceName: String = ""
+    private var deviceName: String? = null
 
     //MN: Reduce duplicated code, check and request permissions
     @RequiresApi(Build.VERSION_CODES.TIRAMISU)
@@ -97,9 +99,11 @@ class WiFiDirectManager(private val context: Context, private val activity: Main
     @SuppressLint("MissingPermission")
     @RequiresApi(Build.VERSION_CODES.TIRAMISU)
     suspend fun getDeviceName(): String {
+        if(deviceName != null){
+            return deviceName!!
+        }
         if (!arePermissionsOk()) Log.d("MONDONGO", "permissions not okey")
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-            var deviceName = "default deviceName"
             startWifiDirectGroup()
             val latch = CountDownLatch(1)
             wifiP2pManager.requestDeviceInfo(channel) { device ->
@@ -118,8 +122,8 @@ class WiFiDirectManager(private val context: Context, private val activity: Main
                 latch.await()
             }
             Log.d("MONDONGO", "isGroupFormed $isGroupFormed")
-            if (isGroupFormed) closeWifiDirectGroup()
-            return deviceName
+            closeWifiDirectGroup()
+            return deviceName!!
         }
         else {
             Log.d("MONDONGO", "0. This device is old")
@@ -127,7 +131,7 @@ class WiFiDirectManager(private val context: Context, private val activity: Main
         }
     }
 
-    private suspend fun closeWifiDirectGroup() {
+    suspend fun closeWifiDirectGroup() {
         val latch = CountDownLatch(1)
         wifiP2pManager.removeGroup(channel, object : WifiP2pManager.ActionListener {
             override fun onSuccess() {
@@ -144,8 +148,6 @@ class WiFiDirectManager(private val context: Context, private val activity: Main
         withContext(Dispatchers.IO) {
             latch.await()
         }
-
-
     }
 
     @RequiresApi(Build.VERSION_CODES.TIRAMISU)
@@ -159,7 +161,6 @@ class WiFiDirectManager(private val context: Context, private val activity: Main
         wifiP2pManager.createGroup(channel, object : WifiP2pManager.ActionListener {
             override fun onSuccess() {
                 // Group creation successful
-                isGroupFormed = true
                 Log.d("MONDONGO", "2. Group created :)")
                 latch.countDown()
             }

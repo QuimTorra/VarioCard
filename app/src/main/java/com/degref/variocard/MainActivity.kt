@@ -95,8 +95,12 @@ class MainActivity : ComponentActivity() {
     }
 
     override fun onDestroy() {
-        super.onDestroy()
+        lifecycleScope.launch {
+            wifiDirectManager.closeWifiDirectGroup()
+        }
+        wifiDirectManager.stopServer()
         unregisterReceiver(wifiDirectReceiver)
+        super.onDestroy()
     }
 
     @RequiresApi(Build.VERSION_CODES.TIRAMISU)
