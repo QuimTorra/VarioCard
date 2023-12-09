@@ -30,11 +30,6 @@ import com.degref.variocard.components.ListCards
 import com.degref.variocard.components.SharedViewModel
 import com.degref.variocard.data.Card
 
-var listAllCards: MutableList<Card> = mutableListOf(
-        Card(1, "Laura Chavarria Solé", "609007385", "laura.chavarria@estudiantat.upc.edu", "FIB", "", null),
-        Card(2,"John Doe", "123456789", "john.doe@example.com", "Company ABC", "", null)
-    )
-
 @Composable
 fun ListScreen(navController: NavHostController, viewModel: SharedViewModel) {
     Surface(
@@ -68,17 +63,17 @@ fun ListScreen(navController: NavHostController, viewModel: SharedViewModel) {
                         .align(Alignment.CenterEnd)
                 )
             }
-            ListCards(listAllCards, navController, viewModel)
+            ListCards(viewModel.listAllCards, navController, viewModel)
         }
     }
 }
 
-fun editCard(newCard: Card) {
-    val existingCardIndex = listAllCards.indexOfFirst { it.id == newCard.id }
+fun editCard(newCard: Card, viewModel: SharedViewModel) {
+    val existingCardIndex = viewModel.listAllCards.indexOfFirst { it.id == newCard.id }
 
     if (existingCardIndex != -1) {
-        listAllCards[existingCardIndex] = newCard
+        viewModel.listAllCards[existingCardIndex] = newCard
     } else {
-        listAllCards.add(newCard)
+        viewModel.listAllCards.add(newCard)
     }
 }

@@ -40,18 +40,33 @@ class FileServerAsyncTask(
 
                     // Read data from the client's input stream
                     val inputStream: InputStream = client.getInputStream()
-                    val buffer = ByteArray(1024)
-                    val bytesRead = inputStream.read(buffer)
+                    val buffer = ByteArray(4096)
+                    var bytesRead: Int = -1
 
-                    // Convert the received bytes to a String
-                    val receivedData = String(buffer, 0, bytesRead)
-
+                    val receivedData = StringBuilder()
+                    while (inputStream.available() > 0 || bytesRead != -1) {
+                        bytesRead = inputStream.read(buffer)
+                        if (bytesRead != -1) {
+                            // Convert the received bytes to a String and append to the StringBuilder
+                            receivedData.append(String(buffer, 0, bytesRead))
+                            Log.d("MONDONGO", "Byte $bytesRead: ${String(buffer, 0, bytesRead)}")
+                        }
+                    }
+                    val message = receivedData.split('*')[0]
+                    val image = receivedData.split('*')[1]
+                    Log.d("MONDONGO", "part 1: ${receivedData.split('*')[0]}")
+                    Log.d("MONDONGO", "part 2: ${receivedData.split('*')[1]}")
+                    if(message != null){
+                        activity.tryToAddCard(message, image.toByteArray())
+                    }
                     activity.showToast("Received message from client: $receivedData")
 
                     messageToSend?.let { message ->
                         // Send the specified message
                         val outputStream: OutputStream = client.getOutputStream()
                         outputStream.write(message.toByteArray())
+                        outputStream.write("*".toByteArray())
+                        outputStream.write("This is a test".toByteArray())
 
                         activity.showToast("Message has been sent")
 

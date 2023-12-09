@@ -71,6 +71,8 @@ import java.net.Socket
 import java.util.Arrays
 import androidx.navigation.compose.rememberNavController
 import com.degref.variocard.components.SharedViewModel
+import com.degref.variocard.data.Card
+import com.degref.variocard.data.Serializer
 import com.degref.variocard.screens.AddCardScreen
 import com.degref.variocard.screens.CardDetailScreen
 import com.degref.variocard.screens.ListScreen
@@ -85,7 +87,7 @@ class MainActivity : ComponentActivity() {
     private lateinit var wifiDirectManager: WiFiDirectManager
     private lateinit var wifiDirectReceiver: BroadcastReceiver
     private lateinit var intentFilter: IntentFilter
-    private lateinit var viewModel: SharedViewModel
+    lateinit var viewModel: SharedViewModel
 
 
     @RequiresApi(Build.VERSION_CODES.TIRAMISU)
@@ -132,6 +134,17 @@ class MainActivity : ComponentActivity() {
         intentFilter.addAction(WifiP2pManager.WIFI_P2P_THIS_DEVICE_CHANGED_ACTION)
 
         registerReceiver(wifiDirectReceiver, intentFilter)
+    }
+
+    fun tryToAddCard(card: String, image: ByteArray){
+        Log.d("MONDONGO", "Trying to serialize $card")
+        try{
+            var c = Serializer().jsonToCard(card)
+            viewModel.listAllCards.add(c)
+        } catch (e: Exception){
+            Log.d("MONDONGO", "Error serializing $card")
+        }
+
     }
 
     override fun onDestroy() {

@@ -141,7 +141,7 @@ fun AddCardScreen(
                           navController.navigate("myCards")
                       }
                       else {
-                          editCard(Card(id, name, phone, email, company, additionalInfo, image))
+                          editCard(Card(id, name, phone, email, company, additionalInfo, image), viewModel)
                           navController.navigate("list")
                       }
 

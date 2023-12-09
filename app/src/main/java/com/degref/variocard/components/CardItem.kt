@@ -4,6 +4,7 @@ import android.graphics.Bitmap
 import android.graphics.ImageDecoder
 import android.os.Build
 import android.provider.MediaStore
+import android.util.Log
 import androidx.annotation.RequiresApi
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.clickable
@@ -32,6 +33,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
 import com.degref.variocard.data.Card
+import com.degref.variocard.data.Serializer
 
 
 @RequiresApi(Build.VERSION_CODES.TIRAMISU)
@@ -100,7 +102,8 @@ fun CardListItem(card: Card, navController: NavController, viewModel: SharedView
                     .padding(end = 8.dp)
                     .align(Alignment.CenterVertically)
                     .clickable {
-                        viewModel.activateSender()
+                        Log.d("MONDONGO", Serializer().cardToJson(card))
+                        viewModel.activateSender(Serializer().cardToJson(card))
                     }
             )
         }

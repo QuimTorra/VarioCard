@@ -8,10 +8,13 @@ import android.net.wifi.p2p.WifiP2pInfo
 import android.net.wifi.p2p.WifiP2pManager
 import android.os.AsyncTask
 import android.util.Log
+import java.util.concurrent.CountDownLatch
 
 class WiFiDirectReceiver(
-    private val manager: WiFiDirectManager, private val activity: MainActivity
+    private val manager: WiFiDirectManager,
+    private val activity: MainActivity
 ) : BroadcastReceiver() {
+
     override fun onReceive(context: Context?, intent: Intent?) {
         when (intent?.action) {
             WifiP2pManager.WIFI_P2P_CONNECTION_CHANGED_ACTION -> {
@@ -24,17 +27,16 @@ class WiFiDirectReceiver(
                     if (wifiP2pInfo.isGroupOwner) {
                         manager.fs = FileServerAsyncTask(context!!,activity)
                         manager.fs!!.start()
-                        manager.fs!!.sendMessage("Init message")
-                        //fs.executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR)
-                        //fs.stopServer()
+                        if(activity.isSenderActive && (manager.card != null)) {
+                            var mes = manager.card!!
+                            manager.fs!!.sendMessage(mes)
+                            Log.d("MONDONGO", "Setting card to null")
+                            manager.card = null
+                        }
+                        else Log.d("MONDONGO", "May be receiver or error")
                     }
                     else {
                         manager.sendData()
-                        /*manager.cs = ClientMessager(context!!, activity, manager.serverAddress!!)
-                        manager.cs!!.start()
-                        manager.cs!!.sendMessage("Started connection successful")
-                        *///manager.sendClientMessage("Started connection successful")
-
                     }
                 } else {
                     // Wi-Fi P2P connection is lost (failure)

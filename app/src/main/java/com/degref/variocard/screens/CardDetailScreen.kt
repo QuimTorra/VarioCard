@@ -4,6 +4,7 @@ import android.graphics.Bitmap
 import android.graphics.ImageDecoder
 import android.os.Build
 import android.provider.MediaStore
+import android.util.Log
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -61,6 +62,7 @@ fun CardDetailScreen(navController: NavHostController, viewModel: SharedViewMode
             Spacer(modifier = Modifier.padding(16.dp))
 
             selectedCard.image?.let {
+                viewModel.setValueImage(it)
                 if (Build.VERSION.SDK_INT < 28) {
                     bitmap.value = MediaStore.Images
                         .Media.getBitmap(context.contentResolver, it)

@@ -4,6 +4,7 @@ import android.Manifest
 import android.annotation.SuppressLint
 import android.content.Context
 import android.content.pm.PackageManager
+import android.net.Uri
 import android.net.wifi.p2p.WifiP2pConfig
 import android.net.wifi.p2p.WifiP2pInfo
 import android.net.wifi.p2p.WifiP2pManager
@@ -22,6 +23,8 @@ import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import java.io.File
+import java.io.FileInputStream
 import java.io.InputStream
 import java.io.OutputStream
 import java.net.InetAddress
@@ -41,6 +44,8 @@ class WiFiDirectManager(private val context: Context, private val activity: Main
     private var deviceName: String? = null
     private var groupAlreadyCreated: CountDownLatch? = null
     private var groupNeverDeleted: CountDownLatch? = null
+    var card: String? = null
+    var imageCard: String? = null
 
     //MN: Reduce duplicated code, check and request permissions
     @RequiresApi(Build.VERSION_CODES.TIRAMISU)
@@ -265,16 +270,46 @@ class WiFiDirectManager(private val context: Context, private val activity: Main
                 Log.d("MONDONGO", "deviceAddress....")
 
                 val outputStream: OutputStream = socket.getOutputStream()
-                val dataToSend = "Hello, server!"
-                outputStream.write(dataToSend.toByteArray())
+                Log.d("MONDONGO", "isSenderActive: ${activity.isSenderActive}")
+                Log.d("MONDONGO", "card: $card")
+                if(activity.isSenderActive && card != null) {
+                    outputStream.write(card!!.toByteArray())
+                    outputStream.write("*".toByteArray())
+                    if(imageCard != null) {
+                        val file = File(imageCard!!)
 
+                        // Create a FileInputStream for the file
+                        val fileInputStream = FileInputStream(file)
+                        val buffer = ByteArray(4096)
+                        var bytesRead: Int
+
+                        while (fileInputStream.read(buffer).also { bytesRead = it } != -1) {
+                            Log.d("MONDONGO", "writing image....")
+                            outputStream.write(buffer, 0, bytesRead)
+                        }
+                    }
+                    outputStream.write("This is a test".toByteArray())
+                    Log.d("MONDONGO", "Card sent: $card")
+                    Log.d("MONDONGO", "Setting card to null")
+                    card = null
+                }
+                else Log.d("MONDONGO", "Received null, may be receiver or error")
 
                 val inputStream: InputStream = socket.getInputStream()
-                val buffer = ByteArray(1024)
-                val bytesRead = inputStream.read(buffer)
+                val buffer = ByteArray(4096)
+                var bytesRead: Int = -1
 
-                // Convert the received bytes to a String
-                val receivedData = String(buffer, 0, bytesRead)
+                val stringBuilder = StringBuilder()
+                while (inputStream.available() > 0 || bytesRead != -1) {
+                    bytesRead = inputStream.read(buffer)
+                    if (bytesRead != -1) {
+                        // Convert the received bytes to a String and append to the StringBuilder
+                        stringBuilder.append(String(buffer, 0, bytesRead))
+                    }
+                }
+
+                // The complete received data
+                val receivedData = stringBuilder.toString()
 
                 activity.showToast("Received message: $receivedData")
                 // Process the received data as needed
