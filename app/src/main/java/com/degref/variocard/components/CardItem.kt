@@ -12,6 +12,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Send
 import androidx.compose.material.icons.filled.Share
 import androidx.compose.material3.Icon
@@ -31,6 +32,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
 import com.degref.variocard.data.Card
+import com.degref.variocard.screens.deleteCard
 
 
 @Composable
@@ -91,6 +93,16 @@ fun CardListItem(card: Card, navController: NavController, viewModel: SharedView
                     Text(text = "${card.email}", maxLines = 1, overflow = TextOverflow.Ellipsis)
                 }
             }
+            /*Icon(
+                imageVector = Icons.Default.Delete,
+                contentDescription = null,
+                modifier = Modifier
+                    .padding(end = 8.dp)
+                    .align(Alignment.CenterVertically)
+                    .clickable {
+                        deleteCard(card, context)
+                    }
+            )*/
             Icon(
                 imageVector = Icons.Default.Send,
                 contentDescription = null,
@@ -98,6 +110,7 @@ fun CardListItem(card: Card, navController: NavController, viewModel: SharedView
                     .padding(end = 8.dp)
                     .align(Alignment.CenterVertically)
             )
+
         }
     }
 }

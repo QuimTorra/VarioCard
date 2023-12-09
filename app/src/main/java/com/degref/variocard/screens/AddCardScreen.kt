@@ -1,6 +1,6 @@
 package com.degref.variocard.screens
 
-import addCard
+import android.content.Context
 import android.graphics.Bitmap
 import android.graphics.ImageDecoder
 import android.net.Uri
@@ -19,7 +19,6 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.Send
@@ -38,14 +37,13 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
-import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavHostController
 import com.degref.variocard.components.SharedViewModel
 import com.degref.variocard.data.Card
 
 @Composable
 fun AddCardScreen(
-    navController: NavHostController, viewModel: SharedViewModel
+    navController: NavHostController, viewModel: SharedViewModel, context: Context
 ) {
     var card = viewModel.selectedCard.value
 
@@ -137,12 +135,8 @@ fun AddCardScreen(
 
                   if (formCompleted) {
                       if (viewModel.listDestination.value != "all") {
-                          addCard(Card(id, name, phone, email, company, additionalInfo, image))
+                          addMyCardToStorage(Card(id, name, phone, email, company, additionalInfo, image), context)
                           navController.navigate("myCards")
-                      }
-                      else {
-                          editCard(Card(id, name, phone, email, company, additionalInfo, image))
-                          navController.navigate("list")
                       }
 
                   }

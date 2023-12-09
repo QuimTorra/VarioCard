@@ -161,16 +161,18 @@ fun CardDetailScreen(navController: NavHostController, viewModel: SharedViewMode
 
             Spacer(modifier = Modifier.padding(16.dp))
 
-            Button(
-                onClick = {
-                    navController.navigate("addCard")
-                },
-                modifier = Modifier
-                    .align(Alignment.End)
-            ) {
-                Icon(imageVector = Icons.Default.Edit, contentDescription = null)
-                Spacer(modifier = Modifier.width(8.dp))
-                Text("Edit")
+            if (viewModel.listDestination.value != "all") {
+                Button(
+                    onClick = {
+                        navController.navigate("addCard")
+                    },
+                    modifier = Modifier
+                        .align(Alignment.End)
+                ) {
+                    Icon(imageVector = Icons.Default.Edit, contentDescription = null)
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text("Edit")
+                }
             }
         }
 
