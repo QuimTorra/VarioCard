@@ -11,6 +11,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.material.Text
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AddCircle
+import androidx.compose.material.icons.filled.Call
 import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -54,6 +55,17 @@ fun ListScreen(navController: NavHostController, viewModel: SharedViewModel) {
                     fontSize = 24.sp,
                     color = Color.White,
                     modifier = Modifier.padding(16.dp)
+                )
+                Icon(
+                    imageVector = Icons.Default.Call,
+                    contentDescription = null,
+                    tint = Color.White,
+                    modifier = Modifier
+                        .clickable {
+                            //activeReader
+                        }
+                        .padding(16.dp)
+                        .align(Alignment.CenterEnd)
                 )
             }
             ListCards(listAllCards, navController, viewModel)

@@ -12,6 +12,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Send
 import androidx.compose.material.icons.filled.Share
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -91,7 +92,7 @@ fun CardListItem(card: Card, navController: NavController, viewModel: SharedView
                 }
             }
             Icon(
-                imageVector = Icons.Default.Share,
+                imageVector = Icons.Default.Send,
                 contentDescription = null,
                 modifier = Modifier
                     .padding(end = 8.dp)
