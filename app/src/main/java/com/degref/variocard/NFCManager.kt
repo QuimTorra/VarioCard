@@ -32,6 +32,7 @@ class NFCManager(
     }
 
     fun startReaderMode(wiFiDirectManager: WiFiDirectManager) {
+        Log.d("MONDONGO", "Reader Mode :)")
         activity.isSenderActive = false
         wiFiDirectManager.stopServer()
         this.wiFiDirectManager = wiFiDirectManager
@@ -50,9 +51,11 @@ class NFCManager(
                     NfcAdapter.FLAG_READER_NO_PLATFORM_SOUNDS,
             options
         )
+        Log.d("MONDONGO", "Reached NFC final...")
     }
 
     fun stopReaderMode() {
+        Log.d("MONDONGO", "I am pausing because im a focking bitch")
         activity.isSenderActive = true
         val nfcAdapter = NfcAdapter.getDefaultAdapter(context)
         nfcAdapter?.disableReaderMode(activity)
@@ -61,6 +64,7 @@ class NFCManager(
     private inner class NfcCallback : NfcAdapter.ReaderCallback {
         @RequiresApi(Build.VERSION_CODES.TIRAMISU)
         override fun onTagDiscovered(tag: Tag?) {
+            Log.d("MONDONGO", "Trying to read a tag...")
             if (!activity.isSenderActive) {
                 Log.d("MONDONGO", "HEYYYYYYYYYYYYYYYYYY")
                 activity.showToast("Read a tag :)")

@@ -62,7 +62,7 @@ fun ListScreen(navController: NavHostController, viewModel: SharedViewModel) {
                     tint = Color.White,
                     modifier = Modifier
                         .clickable {
-                            //activeReader
+                            viewModel.activateReader()
                         }
                         .padding(16.dp)
                         .align(Alignment.CenterEnd)

@@ -13,6 +13,7 @@ import android.util.Log
 import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import androidx.activity.viewModels
 import androidx.annotation.RequiresApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
@@ -84,11 +85,28 @@ class MainActivity : ComponentActivity() {
     private lateinit var wifiDirectManager: WiFiDirectManager
     private lateinit var wifiDirectReceiver: BroadcastReceiver
     private lateinit var intentFilter: IntentFilter
+    private lateinit var viewModel: SharedViewModel
 
 
     @RequiresApi(Build.VERSION_CODES.TIRAMISU)
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        wifiDirectManager = WiFiDirectManager(this, this@MainActivity)
+        nfcManager = NFCManager(this, this@MainActivity)
+
+        wifiDirectManager.arePermissionsOk()
+        initializeWiFiDirectReceiver()
+        if(nfcManager == null) Log.d("MONDONGO", "null initialized")
+        viewModel = SharedViewModel(nfcManager, wifiDirectManager)
+        // Set up NFC for HCE
+        val nfcAdapter = NfcAdapter.getDefaultAdapter(this)
+        nfcAdapter?.let {
+            if (!it.isEnabled) {
+                showToast("NFC is not enabled")
+            } else {
+                nfcManager.startReaderMode(wifiDirectManager)
+            }
+        }
         setContent {
             VarioCardTheme {
                 Surface(
@@ -97,21 +115,6 @@ class MainActivity : ComponentActivity() {
                 ) {
                     MainScreenPreview()
                 }
-            }
-        }
-        wifiDirectManager = WiFiDirectManager(this, this@MainActivity)
-        nfcManager = NFCManager(this, this@MainActivity)
-
-        wifiDirectManager.arePermissionsOk()
-        initializeWiFiDirectReceiver()
-
-        // Set up NFC for HCE
-        val nfcAdapter = NfcAdapter.getDefaultAdapter(this)
-        nfcAdapter?.let {
-            if (!it.isEnabled) {
-                showToast("NFC is not enabled")
-            } else {
-                //nfcManager.startReaderMode(wifiDirectManager)
             }
         }
     }
@@ -132,6 +135,7 @@ class MainActivity : ComponentActivity() {
     }
 
     override fun onDestroy() {
+        //viewModel.cancel()!!!
         lifecycleScope.launch {
             wifiDirectManager.closeWifiDirectGroup()
         }
@@ -144,7 +148,6 @@ class MainActivity : ComponentActivity() {
     @Composable
     fun MainScreenPreview() {
         val navController = rememberNavController()
-        val viewModel: SharedViewModel = viewModel()
         MainScreen(navController, viewModel)
     }
 
@@ -241,24 +244,6 @@ class MainActivity : ComponentActivity() {
             Text(text = "Received Message:")
             Text(text = receivedMessage, style = MaterialTheme.typography.bodyMedium)
         }*/
-    }
-
-    private fun activateReader(){
-        nfcManager.startReaderMode(wifiDirectManager)
-        //wifiDirectManager.stopServer()
-    }
-
-    @RequiresApi(Build.VERSION_CODES.TIRAMISU)
-    private fun activateSender() {
-        nfcManager.stopReaderMode()
-        lifecycleScope.launch {
-            val deviceName = wifiDirectManager.getDeviceName()
-            Log.d("MONDONGO", deviceName)
-
-            // Now that we have the deviceName, update the UI or perform other operations
-            nfcManager.sendNfcMessage(deviceName)
-            wifiDirectManager.openWiFiDirect()
-        }
     }
 
     fun showToast(message: String) {
