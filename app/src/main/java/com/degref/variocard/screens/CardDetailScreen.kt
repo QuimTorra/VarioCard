@@ -2,8 +2,10 @@ package com.degref.variocard.screens
 
 import android.graphics.Bitmap
 import android.graphics.ImageDecoder
+import android.net.Uri
 import android.os.Build
 import android.provider.MediaStore
+import android.util.Log
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -60,12 +62,14 @@ fun CardDetailScreen(navController: NavHostController, viewModel: SharedViewMode
 
             Spacer(modifier = Modifier.padding(16.dp))
 
-            selectedCard.image?.let {
+            val uri: Uri? = selectedCard.image?.takeIf { it?.isNotEmpty() == true }?.let { Uri.parse(it) }
+
+            /*uri?.let {
                 if (Build.VERSION.SDK_INT < 28) {
                     bitmap.value = MediaStore.Images
-                        .Media.getBitmap(context.contentResolver, it)
+                        .Media.getBitmap(context.contentResolver, uri)
                 } else {
-                    val source = ImageDecoder.createSource(context.contentResolver, it)
+                    val source = ImageDecoder.createSource(context.contentResolver, uri)
                     bitmap.value = ImageDecoder.decodeBitmap(source)
                 }
 
@@ -75,10 +79,9 @@ fun CardDetailScreen(navController: NavHostController, viewModel: SharedViewMode
                         contentDescription = null,
                         modifier = Modifier
                             .size(80.dp)
-                            .align(Alignment.CenterHorizontally)
                     )
                 }
-            }
+            }*/
 
             Spacer(modifier = Modifier.padding(16.dp))
 
@@ -164,6 +167,7 @@ fun CardDetailScreen(navController: NavHostController, viewModel: SharedViewMode
             if (viewModel.listDestination.value != "all") {
                 Button(
                     onClick = {
+                        Log.d("cardSelected", selectedCard.toString())
                         navController.navigate("addCard")
                     },
                     modifier = Modifier

@@ -2,8 +2,10 @@ package com.degref.variocard.components
 
 import android.graphics.Bitmap
 import android.graphics.ImageDecoder
+import android.net.Uri
 import android.os.Build
 import android.provider.MediaStore
+import android.util.Log
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Column
@@ -37,6 +39,7 @@ import com.degref.variocard.screens.deleteCard
 
 @Composable
 fun CardListItem(card: Card, navController: NavController, viewModel: SharedViewModel) {
+    Log.d("-list-item", "item")
     var bitmap = remember {
         mutableStateOf<Bitmap?>(null)
     }
@@ -61,12 +64,15 @@ fun CardListItem(card: Card, navController: NavController, viewModel: SharedView
                 modifier = Modifier
                     .fillMaxWidth(0.9f)
             ) {
-                card.image?.let {
+                val uri: Uri? = card?.image?.takeIf { it?.isNotEmpty() == true }?.let { Uri.parse(it) }
+
+                Log.d("myOwnCards-image", uri.toString())
+                if (uri != null) {
                     if (Build.VERSION.SDK_INT < 28) {
                         bitmap.value = MediaStore.Images
-                            .Media.getBitmap(context.contentResolver, it)
+                            .Media.getBitmap(context.contentResolver, uri)
                     } else {
-                        val source = ImageDecoder.createSource(context.contentResolver, it)
+                        val source = ImageDecoder.createSource(context.contentResolver, uri)
                         bitmap.value = ImageDecoder.decodeBitmap(source)
                     }
 
@@ -79,6 +85,8 @@ fun CardListItem(card: Card, navController: NavController, viewModel: SharedView
                         )
                     }
                 }
+
+                Log.d("myOwnCards-cardItem", "error")
                 Column(
                     modifier = Modifier
                         .padding(8.dp)

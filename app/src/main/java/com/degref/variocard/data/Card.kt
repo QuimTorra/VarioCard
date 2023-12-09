@@ -9,5 +9,5 @@ data class Card(
     var email: String,
     var company: String,
     var additionalInfo: String,
-    var image: Uri?
+    var image: String
 )
