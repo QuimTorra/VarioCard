@@ -1,5 +1,8 @@
 package com.degref.variocard
 
+import MyCardsScreen
+import android.Manifest
+import android.annotation.SuppressLint
 import android.content.BroadcastReceiver
 import android.content.IntentFilter
 import android.net.wifi.p2p.WifiP2pManager
@@ -11,6 +14,7 @@ import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.annotation.RequiresApi
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -19,23 +23,56 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.material3.Button
-import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material.BottomNavigation
+import androidx.compose.material.BottomNavigationItem
+import androidx.compose.material.Icon
+import androidx.compose.material.Scaffold
+import androidx.compose.material.Surface
+import androidx.compose.material.Text
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.AccountBox
+import androidx.compose.material.icons.filled.List
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Surface
-import androidx.compose.material3.Text
-import androidx.compose.material3.TextField
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.tooling.preview.PreviewParameter
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.lifecycleScope
 import com.degref.variocard.ui.theme.VarioCardTheme
 import kotlinx.coroutines.launch
+import androidx.core.app.ActivityCompat
+import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.navigation.NavHostController
+import androidx.navigation.compose.NavHost
+import androidx.navigation.compose.composable
+import com.degref.variocard.Utils.parseTextrecordPayload
+import com.degref.variocard.ui.theme.VarioCardTheme
+import com.google.android.material.bottomnavigation.BottomNavigationView
+import kotlinx.coroutines.DelicateCoroutinesApi
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.GlobalScope
+import kotlinx.coroutines.launch
+import java.io.BufferedReader
+import java.io.InputStream
+import java.io.InputStreamReader
+import java.io.OutputStream
+import java.io.PrintWriter
+import java.net.InetAddress
+import java.net.InetSocketAddress
+import java.net.ServerSocket
+import java.net.Socket
+import java.util.Arrays
+import androidx.navigation.compose.rememberNavController
+import com.degref.variocard.components.SharedViewModel
+import com.degref.variocard.screens.AddCardScreen
+import com.degref.variocard.screens.CardDetailScreen
+import com.degref.variocard.screens.ListScreen
 
 
 class MainActivity : ComponentActivity() {
@@ -58,7 +95,7 @@ class MainActivity : ComponentActivity() {
                     modifier = Modifier.fillMaxSize(),
                     color = MaterialTheme.colorScheme.background
                 ) {
-                    MainScreen()
+                    MainScreenPreview()
                 }
             }
         }
@@ -104,11 +141,61 @@ class MainActivity : ComponentActivity() {
     }
 
     @RequiresApi(Build.VERSION_CODES.TIRAMISU)
-    @OptIn(ExperimentalMaterial3Api::class)
-    @Preview
     @Composable
-    fun MainScreen() {
-        Column(
+    fun MainScreenPreview() {
+        val navController = rememberNavController()
+        val viewModel: SharedViewModel = viewModel()
+        MainScreen(navController, viewModel)
+    }
+
+    @SuppressLint("UnusedMaterialScaffoldPaddingParameter")
+    @RequiresApi(Build.VERSION_CODES.TIRAMISU)
+    // @OptIn(ExperimentalMaterial3Api::class)
+    @Composable
+    fun MainScreen(navController: NavHostController, viewModel: SharedViewModel) {
+        Scaffold(
+            Modifier.background(Color.DarkGray),
+            bottomBar = {
+                BottomNavigation {
+                    BottomNavigationItem(
+                        icon = {
+                            Icon(imageVector = Icons.Default.List, contentDescription = "List")
+                        },
+                        label = { Text("List") },
+                        selected = true,
+                        onClick = {
+                            navController.navigate("list")
+                        }
+                    )
+                    BottomNavigationItem(
+                        icon = {
+                            Icon(imageVector = Icons.Default.AccountBox, contentDescription = "My Cards")
+                        },
+                        label = { Text("My cards") },
+                        selected = false,
+                        onClick = { navController.navigate("myCards") }
+                    )
+                }
+            }
+        ) {
+            NavHost(navController = navController, startDestination = "list") {
+                composable("list") {
+                    viewModel.listDestination.value = "all"
+                    ListScreen(navController, viewModel)
+                }
+                composable("myCards") {
+                    viewModel.listDestination.value = "myCards"
+                    MyCardsScreen(navController, viewModel)
+                }
+                composable("addCard") {
+                    AddCardScreen(navController, viewModel)
+                }
+                composable("cardDetail") {
+                    CardDetailScreen(navController, viewModel)
+                }
+            }
+        }
+        /* Column(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(16.dp),
@@ -153,19 +240,7 @@ class MainActivity : ComponentActivity() {
             Spacer(modifier = Modifier.height(16.dp))
             Text(text = "Received Message:")
             Text(text = receivedMessage, style = MaterialTheme.typography.bodyMedium)
-
-            // Additional button below the "Enter your message" TextField
-            Button(
-                onClick = {
-                    wifiDirectManager.sendMessage(sendingMessage)
-                },
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(top = 16.dp)
-            ) {
-                Text("Additional Button")
-            }
-        }
+        }*/
     }
 
     private fun activateReader(){
@@ -208,7 +283,7 @@ class MainActivity : ComponentActivity() {
             nfcManager.stopReaderMode()
         }
         lifecycleScope.launch {
-            wifiDirectManager.closeWifiDirectGroup()
+            //wifiDirectManager.closeWifiDirectGroup()
         }
         wifiDirectManager.stopServer()
     }
