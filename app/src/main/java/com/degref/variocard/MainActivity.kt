@@ -108,15 +108,17 @@ class MainActivity : ComponentActivity() {
         registerReceiver(wifiDirectReceiver, intentFilter)
     }
 
-    fun tryToAddCard(card: String, image: ByteArray){
-        Log.d("MONDONGO", "Trying to serialize $card")
+    fun tryToAddCard(card: String, image: String){
+        //Log.d("MONDONGO", "Trying to serialize $card")
         try{
             var c = Serializer().jsonToCard(card)
             viewModel.listAllCards.add(c)
         } catch (e: Exception){
-            Log.d("MONDONGO", "Error serializing $card")
+            Log.d("MONDONGO", "error serializing card")
+            //Log.d("MONDONGO", "Error serializing $card")
         }
 
+        Log.d("MONDONGO", "WTF??")
     }
 
     override fun onDestroy() {

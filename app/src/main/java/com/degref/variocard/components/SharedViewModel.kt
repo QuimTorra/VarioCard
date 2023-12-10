@@ -54,7 +54,7 @@ class SharedViewModel(
         }
     }
 
-    fun setValueImage(uri: Uri){
-        wifiDirectManager.imageCard = uri.toString()
+    fun setValueImage(path: String){
+        wifiDirectManager.imageCard = path
     }
 }

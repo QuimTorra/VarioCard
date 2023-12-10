@@ -25,11 +25,13 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.io.File
 import java.io.FileInputStream
+import java.io.IOException
 import java.io.InputStream
 import java.io.OutputStream
 import java.net.InetAddress
 import java.net.InetSocketAddress
 import java.net.Socket
+import java.net.SocketException
 import java.util.concurrent.CountDownLatch
 
 
@@ -274,9 +276,10 @@ class WiFiDirectManager(private val context: Context, private val activity: Main
                 Log.d("MONDONGO", "card: $card")
                 if(activity.isSenderActive && card != null) {
                     outputStream.write(card!!.toByteArray())
-                    outputStream.write("*".toByteArray())
+                    outputStream.write("\r\n\r\n".toByteArray())
                     if(imageCard != null) {
                         val file = File(imageCard!!)
+                        Log.d("MONDONGO", "File size: ${file.length()}")
 
                         // Create a FileInputStream for the file
                         val fileInputStream = FileInputStream(file)
@@ -284,11 +287,10 @@ class WiFiDirectManager(private val context: Context, private val activity: Main
                         var bytesRead: Int
 
                         while (fileInputStream.read(buffer).also { bytesRead = it } != -1) {
-                            Log.d("MONDONGO", "writing image....")
+                            //Log.d("MONDONGO", "writing image....")
                             outputStream.write(buffer, 0, bytesRead)
                         }
                     }
-                    outputStream.write("This is a test".toByteArray())
                     Log.d("MONDONGO", "Card sent: $card")
                     Log.d("MONDONGO", "Setting card to null")
                     card = null
@@ -325,8 +327,13 @@ class WiFiDirectManager(private val context: Context, private val activity: Main
                 socket.takeIf { it.isConnected }?.apply {
                     close()
                 }
-            } catch (e: Exception) {
-                Log.d("MONDONGO", "exception raised: $e")
+            } catch (ie: IOException){
+                Log.d("MONDONGO", "IO exception raised here: $ie")
+            } catch (s: SocketException){
+                Log.d("MONDONGO", "Socket exception raised here: $s")
+            }
+            catch (e: Exception) {
+                Log.d("MONDONGO", "exception raised here: $e")
             }
         }
     }

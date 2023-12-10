@@ -5,14 +5,21 @@ import android.content.Intent
 import android.location.GnssNavigationMessage
 import android.net.Uri
 import android.os.AsyncTask
+import android.os.Environment
+import android.util.Base64
 import android.util.Log
 import android.widget.Toast
+import java.io.BufferedInputStream
+import java.io.BufferedOutputStream
 import java.io.BufferedReader
+import java.io.ByteArrayOutputStream
 import java.io.File
+import java.io.FileOutputStream
 import java.io.InputStream
 import java.io.InputStreamReader
 import java.io.OutputStream
 import java.net.ServerSocket
+import java.util.concurrent.CountDownLatch
 
 
 class FileServerAsyncTask(
@@ -38,34 +45,94 @@ class FileServerAsyncTask(
                     if(!client.isClosed) Log.d("MONDONGO", "Client not closed")
                     if(client.isConnected) Log.d("MONDONGO", "Client connected")
 
-                    // Read data from the client's input stream
                     val inputStream: InputStream = client.getInputStream()
+                    val bufferedInputStream = BufferedInputStream(inputStream)
                     val buffer = ByteArray(4096)
-                    var bytesRead: Int = -1
+                    var bytesRead: Int
 
-                    val receivedData = StringBuilder()
-                    while (inputStream.available() > 0 || bytesRead != -1) {
-                        bytesRead = inputStream.read(buffer)
-                        if (bytesRead != -1) {
-                            // Convert the received bytes to a String and append to the StringBuilder
-                            receivedData.append(String(buffer, 0, bytesRead))
-                            Log.d("MONDONGO", "Byte $bytesRead: ${String(buffer, 0, bytesRead)}")
-                        }
+                    val textData = StringBuilder()
+                    val imageBuffer = ByteArrayOutputStream()
+
+                    var latch = CountDownLatch(1)
+
+                    try {
+                        var asteriskFound = false
+
+                        do {
+                            bytesRead = bufferedInputStream.read(buffer)
+                            if (bytesRead != -1) {
+                                // Check for the asterisk to separate text and image data
+                                for (i in 0 until bytesRead) {
+                                    if (i+3 < buffer.size && buffer[i] == '\r'.toByte() && buffer[i + 1] == '\n'.toByte() &&
+                                        buffer[i + 2] == '\r'.toByte() && buffer[i + 3] == '\n'.toByte()) {
+                                        asteriskFound = true
+                                        Log.d("MONDONGO","FOUND")
+                                        // Write the remaining bytes to the image buffer
+                                        imageBuffer.write(buffer, i + 4, bytesRead - (i + 4))
+                                        latch.countDown()
+                                        break
+                                    }
+                                    textData.append(buffer[i].toChar())
+                                }
+
+                                if (!asteriskFound) {
+                                    // If asterisk is not found, write all bytes to text data
+                                    textData.append(String(buffer, 0, bytesRead))
+                                }
+                            }
+                            else{
+                                latch.countDown()
+                            }
+                        } while (bytesRead != -1)
+                        Log.d("MONDONGO","Start to wait")
+                        latch.await()
+                        Log.d("MONDONGO","Waiting")
+                    } catch (e: Exception) {
+                        Log.d("MONDONGO", e.printStackTrace().toString())
+                    } finally {
+                        bufferedInputStream.close()
                     }
-                    val message = receivedData.split('*')[0]
+
+                    val message = textData.toString()
+                    // Convert the image data to a byte array
+                    val image = imageBuffer.toByteArray()
+                    Log.d("MONDONGO", "img size: ${image.size}")
+                    //Log.d("MONDONGO","Text data: $textData")
+                   /* val message = receivedData.split('*')[0]
+                    Log.d("MONDONGO", "Message recieved: $message")
                     val image = receivedData.split('*')[1]
-                    Log.d("MONDONGO", "part 1: ${receivedData.split('*')[0]}")
-                    Log.d("MONDONGO", "part 2: ${receivedData.split('*')[1]}")
-                    if(message != null){
-                        activity.tryToAddCard(message, image.toByteArray())
+                    val imageBytes = Base64.decode(image, Base64.DEFAULT)*/
+                    Log.d("MONDONGO", "Here")
+                   try {
+                        val directory = File(context.getExternalFilesDir(Environment.DIRECTORY_PICTURES), "MyAppImages")
+
+                        if (!directory.exists()) {
+                            directory.mkdirs()
+                        }
+                        val file = File(directory, name)
+
+                        Log.d("MONDONGO", "here2")
+                        val fileOutputStream = FileOutputStream(file)
+
+                        fileOutputStream.write(image)
+                        fileOutputStream.close()
+                        Log.d("MONDONGO", "Image saved successfully to ${file.absolutePath}")
+                    } catch (e: Exception) {
+                        Log.e("MONDONGO", "Error saving image: ${e.message}")
                     }
-                    activity.showToast("Received message from client: $receivedData")
+                    //Log.d("MONDONGO", "image received: $image")
+                    //Log.d("MONDONGO", "part 1: ${receivedData.split('*')[0]}")
+                    //Log.d("MONDONGO", "part 2: ${receivedData.split('*')[1]}")
+                    if(message != null){
+                        if(image != null) activity.tryToAddCard(message, "")
+                        else activity.tryToAddCard(message, "")
+                    }
 
                     messageToSend?.let { message ->
                         // Send the specified message
                         val outputStream: OutputStream = client.getOutputStream()
                         outputStream.write(message.toByteArray())
-                        outputStream.write("*".toByteArray())
+                        outputStream.write("END".toByteArray())
                         outputStream.write("This is a test".toByteArray())
 
                         activity.showToast("Message has been sent")
@@ -74,7 +141,7 @@ class FileServerAsyncTask(
                     }
 
                     activity.showToast("Message has been sent")
-
+                    Log.d("MONDONGO", "End image reading??")
                     client.close()
                 } catch (e: Exception) {
                     Log.e("FileServerAsyncTask", "Error in server: ${e.message}")
@@ -108,6 +175,33 @@ class FileServerAsyncTask(
     fun stopServer() {
         isServerRunning = false
         serverSocket?.close()
+    }
+
+    fun writeToStorage(byteArray: ByteArray){
+        val name = "${System.currentTimeMillis()}.jpg"
+        val directory = File(context.getExternalFilesDir(Environment.DIRECTORY_PICTURES), "MyAppImages")
+
+        if (!directory.exists()) {
+            directory.mkdirs()
+        }
+
+        val file = File(directory, name)
+
+        if (!file.exists()) {
+            file.createNewFile()
+        }
+        try {
+            // Create a FileOutputStream to write to the file
+            val fileOutputStream = FileOutputStream(file)
+            fileOutputStream.write(byteArray)
+            fileOutputStream.close()
+            Log.d("MONDONGO", "Image successfully sent")
+            // File has been written successfully
+        } catch (e: Exception) {
+            Log.d("MONDONGO", "Exception")
+            //Log.d("MONDONGO", e.printStackTrace().toString())
+            // Handle the exception
+        }
     }
 }
 

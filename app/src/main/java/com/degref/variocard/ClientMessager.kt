@@ -56,7 +56,7 @@ class ClientMessager (
 
                     activity.showToast("Received message: $receivedData")
                     // Process the received data as needed
-                    Log.d("MONDONGO", "Received data: $receivedData")
+                    //Log.d("MONDONGO", "Received data: $receivedData")
 
                     inputStream.close()
                 } catch (e: Exception) {

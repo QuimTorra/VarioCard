@@ -86,6 +86,7 @@ fun CardListItem(card: Card, navController: NavController, viewModel: SharedView
                     .align(Alignment.CenterVertically)
                     .clickable {
                         Log.d("MONDONGO", Serializer().cardToJson(card))
+                        if(card.image != "") viewModel.setValueImage(card.image)
                         viewModel.activateSender(Serializer().cardToJson(card))
                     }
             )
