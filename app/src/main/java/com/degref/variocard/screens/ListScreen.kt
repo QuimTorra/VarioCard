@@ -2,6 +2,7 @@ package com.degref.variocard.screens
 
 import android.content.Context
 import android.content.res.Resources
+import android.util.Log
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
@@ -35,6 +36,7 @@ var listAllCards: MutableList<Card> = mutableListOf()
 @Composable
 fun ListScreen(navController: NavHostController, viewModel: SharedViewModel, resources: Resources, context: Context) {
     listAllCards = getListCardsStorage(context)
+    Log.d("YOBAMA", "listAllCards" + listAllCards.toString())
 
     Surface(
         modifier = Modifier.fillMaxSize(),
@@ -77,12 +79,30 @@ fun ListScreen(navController: NavHostController, viewModel: SharedViewModel, res
 
 fun getListCardsStorage(context: Context): MutableList<Card> {
     val file = File(context.filesDir, "list_cards")
-    val content = file.readText()
 
-    val gson = Gson()
-    val listCardsType = object : TypeToken<MutableList<Card>>() {}.type
+    if (!file.exists()) {
+        try {
+            file.createNewFile()
+        } catch (e: Exception) {
+            return mutableListOf()
+        }
+    }
 
-    return gson.fromJson(content, listCardsType)
+    try {
+        val content = file.readText()
+        Log.d("myOwnCards-content", content)
+
+        if (content.isNotBlank()) {
+            val gson = Gson()
+            val listCardsType = object : TypeToken<MutableList<Card>>() {}.type
+            return gson.fromJson(content, listCardsType)
+        }
+        return mutableListOf()
+
+    } catch (e: Exception) {
+        Log.d("myOwnCards-error", "error")
+        return mutableListOf()
+    }
 }
 
 fun addCardToStorage(card: Card, context: Context) {

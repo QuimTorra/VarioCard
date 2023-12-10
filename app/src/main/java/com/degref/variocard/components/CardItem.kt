@@ -1,10 +1,8 @@
 package com.degref.variocard.components
 
+import android.content.Context
 import android.graphics.Bitmap
-import android.graphics.ImageDecoder
-import android.net.Uri
-import android.os.Build
-import android.provider.MediaStore
+import android.graphics.BitmapFactory
 import android.util.Log
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.clickable
@@ -14,9 +12,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Send
-import androidx.compose.material.icons.filled.Share
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
@@ -34,16 +30,10 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
 import com.degref.variocard.data.Card
-import com.degref.variocard.screens.deleteCard
-
+import java.io.File
 
 @Composable
 fun CardListItem(card: Card, navController: NavController, viewModel: SharedViewModel) {
-    Log.d("-list-item", "item")
-    var bitmap = remember {
-        mutableStateOf<Bitmap?>(null)
-    }
-    var context = LocalContext.current
     Surface(
         modifier = Modifier
             .fillMaxWidth()
@@ -64,29 +54,9 @@ fun CardListItem(card: Card, navController: NavController, viewModel: SharedView
                 modifier = Modifier
                     .fillMaxWidth(0.9f)
             ) {
-                val uri: Uri? = card?.image?.takeIf { it?.isNotEmpty() == true }?.let { Uri.parse(it) }
-
-                Log.d("myOwnCards-image", uri.toString())
-                if (uri != null) {
-                    if (Build.VERSION.SDK_INT < 28) {
-                        bitmap.value = MediaStore.Images
-                            .Media.getBitmap(context.contentResolver, uri)
-                    } else {
-                        val source = ImageDecoder.createSource(context.contentResolver, uri)
-                        bitmap.value = ImageDecoder.decodeBitmap(source)
-                    }
-
-                    bitmap.value?.let { btm ->
-                        Image(
-                            bitmap = btm.asImageBitmap(),
-                            contentDescription = null,
-                            modifier = Modifier
-                                .size(80.dp)
-                        )
-                    }
+                if (card.image != "") {
+                    loadBitmapFromFile(card.image)
                 }
-
-                Log.d("myOwnCards-cardItem", "error")
                 Column(
                     modifier = Modifier
                         .padding(8.dp)
@@ -101,16 +71,6 @@ fun CardListItem(card: Card, navController: NavController, viewModel: SharedView
                     Text(text = "${card.email}", maxLines = 1, overflow = TextOverflow.Ellipsis)
                 }
             }
-            /*Icon(
-                imageVector = Icons.Default.Delete,
-                contentDescription = null,
-                modifier = Modifier
-                    .padding(end = 8.dp)
-                    .align(Alignment.CenterVertically)
-                    .clickable {
-                        deleteCard(card, context)
-                    }
-            )*/
             Icon(
                 imageVector = Icons.Default.Send,
                 contentDescription = null,
@@ -120,5 +80,24 @@ fun CardListItem(card: Card, navController: NavController, viewModel: SharedView
             )
 
         }
+    }
+}
+
+@Composable
+private fun loadBitmapFromFile(filePath: String) {
+    val file = File(filePath)
+    if (file.exists()) {
+        var bitmap: Bitmap? = null
+        bitmap = BitmapFactory.decodeFile(file.absolutePath)
+        if (bitmap != null) {
+            Image(
+                bitmap = bitmap.asImageBitmap(),
+                contentDescription = null,
+                modifier = Modifier
+                    .size(80.dp)
+            )
+        }
+    } else {
+        Log.d("YOBAMA", "image file doesn't exists")
     }
 }

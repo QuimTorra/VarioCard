@@ -1,6 +1,7 @@
 package com.degref.variocard.screens
 
 import android.graphics.Bitmap
+import android.graphics.BitmapFactory
 import android.graphics.ImageDecoder
 import android.net.Uri
 import android.os.Build
@@ -36,15 +37,11 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavHostController
 import com.degref.variocard.components.SharedViewModel
+import java.io.File
 
 @Composable
 fun CardDetailScreen(navController: NavHostController, viewModel: SharedViewModel) {
     val selectedCard = viewModel.selectedCard.value
-
-    var bitmap = remember {
-        mutableStateOf<Bitmap?>(null)
-    }
-    var context = LocalContext.current
 
     if (selectedCard != null) {
         Column (
@@ -62,28 +59,10 @@ fun CardDetailScreen(navController: NavHostController, viewModel: SharedViewMode
 
             Spacer(modifier = Modifier.padding(16.dp))
 
-            val uri: Uri? = selectedCard.image?.takeIf { it?.isNotEmpty() == true }?.let { Uri.parse(it) }
-
-            /*uri?.let {
-                if (Build.VERSION.SDK_INT < 28) {
-                    bitmap.value = MediaStore.Images
-                        .Media.getBitmap(context.contentResolver, uri)
-                } else {
-                    val source = ImageDecoder.createSource(context.contentResolver, uri)
-                    bitmap.value = ImageDecoder.decodeBitmap(source)
-                }
-
-                bitmap.value?.let { btm ->
-                    Image(
-                        bitmap = btm.asImageBitmap(),
-                        contentDescription = null,
-                        modifier = Modifier
-                            .size(80.dp)
-                    )
-                }
-            }*/
-
-            Spacer(modifier = Modifier.padding(16.dp))
+            if (selectedCard.image != "") {
+                loadBitmapFromFile(selectedCard.image)
+                Spacer(modifier = Modifier.padding(16.dp))
+            }
 
             Box(
                 modifier = Modifier
@@ -143,9 +122,8 @@ fun CardDetailScreen(navController: NavHostController, viewModel: SharedViewMode
                         Text(selectedCard.company)
                     }
                 }
+                Spacer(modifier = Modifier.padding(16.dp))
             }
-
-            Spacer(modifier = Modifier.padding(16.dp))
 
             if (selectedCard.additionalInfo.isNotBlank()) {
                 Box(
@@ -160,9 +138,8 @@ fun CardDetailScreen(navController: NavHostController, viewModel: SharedViewMode
                         Text(selectedCard.additionalInfo)
                     }
                 }
+                Spacer(modifier = Modifier.padding(16.dp))
             }
-
-            Spacer(modifier = Modifier.padding(16.dp))
 
             if (viewModel.listDestination.value != "all") {
                 Button(
@@ -180,5 +157,24 @@ fun CardDetailScreen(navController: NavHostController, viewModel: SharedViewMode
             }
         }
 
+    }
+}
+
+@Composable
+private fun loadBitmapFromFile(filePath: String) {
+    val file = File(filePath)
+    if (file.exists()) {
+        var bitmap: Bitmap? = null
+        bitmap = BitmapFactory.decodeFile(file.absolutePath)
+        if (bitmap != null) {
+            Image(
+                bitmap = bitmap.asImageBitmap(),
+                contentDescription = null,
+                modifier = Modifier
+                    .size(80.dp)
+            )
+        }
+    } else {
+        Log.d("YOBAMA", "image file doesn't exists")
     }
 }

@@ -2,6 +2,7 @@ package com.degref.variocard.screens
 
 import android.content.Context
 import android.graphics.Bitmap
+import android.graphics.BitmapFactory
 import android.graphics.ImageDecoder
 import android.net.Uri
 import android.os.Build
@@ -82,13 +83,10 @@ fun AddCardScreen(
                 .padding(16.dp)
         )
 
-        val uri: Uri? = if (image.isNotBlank()) {
-            Uri.parse(image)
-        } else {
-            null
+        if (image == "") image = PickImageFromGallery(null, context)
+        else {
+            loadBitmapFromFile(image)
         }
-
-        image = PickImageFromGallery(uri, context)
 
         OutlinedTextField(
             value = name,
@@ -153,10 +151,11 @@ fun AddCardScreen(
                       if (viewModel.listDestination.value != "all") {
                           var filePath = bitmap?.let { saveImageToStorage(context, it, image) }
                           if (filePath != null) {
+                              Log.d("YOBAMA", filePath)
                               addMyCardToStorage(Card(id, name, phone, email, company, additionalInfo, filePath), context)
                           }
                           else {
-                              Log.d("filePath", "null")
+                              Log.d("YOBAMA", "FILEpATH IS null")
                               addMyCardToStorage(Card(id, name, phone, email, company, additionalInfo, ""), context)
                           }
                           navController.navigate("myCards")
@@ -225,13 +224,18 @@ fun PickImageFromGallery(image: Uri?, context: Context): String {
 }
 
 fun saveImageToStorage(context: Context, bitmap: Bitmap, fileName: String): String? {
+    val name = "${System.currentTimeMillis()}.jpg"
     val directory = File(context.getExternalFilesDir(Environment.DIRECTORY_PICTURES), "MyAppImages")
 
     if (!directory.exists()) {
         directory.mkdirs()
     }
 
-    val file = File(directory, fileName)
+    val file = File(directory, name)
+
+    if (!file.exists()) {
+        file.createNewFile()
+    }
 
     try {
         val fileOutputStream = FileOutputStream(file)
@@ -246,5 +250,24 @@ fun saveImageToStorage(context: Context, bitmap: Bitmap, fileName: String): Stri
         e.printStackTrace()
         Log.d("errorsaveimage", "error")
         return null
+    }
+}
+
+@Composable
+private fun loadBitmapFromFile(filePath: String) {
+    val file = File(filePath)
+    if (file.exists()) {
+        var bitmap: Bitmap? = null
+        bitmap = BitmapFactory.decodeFile(file.absolutePath)
+        if (bitmap != null) {
+            Image(
+                bitmap = bitmap.asImageBitmap(),
+                contentDescription = null,
+                modifier = Modifier
+                    .size(80.dp)
+            )
+        }
+    } else {
+        Log.d("YOBAMA", "image file doesn't exists")
     }
 }
