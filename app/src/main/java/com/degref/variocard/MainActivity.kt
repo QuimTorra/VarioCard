@@ -1,9 +1,9 @@
 package com.degref.variocard
 
-import MyCardsScreen
-import android.Manifest
+import com.degref.variocard.screens.MyCardsScreen
 import android.annotation.SuppressLint
 import android.content.BroadcastReceiver
+import android.content.Context
 import android.content.IntentFilter
 import android.net.wifi.p2p.WifiP2pManager
 import android.nfc.NfcAdapter
@@ -16,14 +16,7 @@ import androidx.activity.compose.setContent
 import androidx.activity.viewModels
 import androidx.annotation.RequiresApi
 import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.padding
 import androidx.compose.material.BottomNavigation
 import androidx.compose.material.BottomNavigationItem
 import androidx.compose.material.Icon
@@ -38,37 +31,15 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.tooling.preview.Preview
-import androidx.compose.ui.tooling.preview.PreviewParameter
-import androidx.compose.ui.unit.dp
 import androidx.lifecycle.lifecycleScope
 import com.degref.variocard.ui.theme.VarioCardTheme
 import kotlinx.coroutines.launch
-import androidx.core.app.ActivityCompat
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
-import com.degref.variocard.Utils.parseTextrecordPayload
-import com.degref.variocard.ui.theme.VarioCardTheme
-import com.google.android.material.bottomnavigation.BottomNavigationView
-import kotlinx.coroutines.DelicateCoroutinesApi
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.GlobalScope
-import kotlinx.coroutines.launch
-import java.io.BufferedReader
-import java.io.InputStream
-import java.io.InputStreamReader
-import java.io.OutputStream
-import java.io.PrintWriter
-import java.net.InetAddress
-import java.net.InetSocketAddress
-import java.net.ServerSocket
-import java.net.Socket
-import java.util.Arrays
 import androidx.navigation.compose.rememberNavController
 import com.degref.variocard.components.SharedViewModel
 import com.degref.variocard.data.Card
@@ -88,6 +59,7 @@ class MainActivity : ComponentActivity() {
     private lateinit var wifiDirectReceiver: BroadcastReceiver
     private lateinit var intentFilter: IntentFilter
     lateinit var viewModel: SharedViewModel
+    val context: Context = this
 
 
     @RequiresApi(Build.VERSION_CODES.TIRAMISU)
@@ -195,16 +167,17 @@ class MainActivity : ComponentActivity() {
             }
         ) {
             NavHost(navController = navController, startDestination = "list") {
+                var resources = resources
                 composable("list") {
                     viewModel.listDestination.value = "all"
-                    ListScreen(navController, viewModel)
+                    ListScreen(navController, viewModel, resources, context)
                 }
                 composable("myCards") {
                     viewModel.listDestination.value = "myCards"
-                    MyCardsScreen(navController, viewModel)
+                    MyCardsScreen(navController, viewModel, context)
                 }
                 composable("addCard") {
-                    AddCardScreen(navController, viewModel)
+                    AddCardScreen(navController, viewModel, context)
                 }
                 composable("cardDetail") {
                     CardDetailScreen(navController, viewModel)

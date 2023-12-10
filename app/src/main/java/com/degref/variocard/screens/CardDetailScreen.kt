@@ -1,7 +1,9 @@
 package com.degref.variocard.screens
 
 import android.graphics.Bitmap
+import android.graphics.BitmapFactory
 import android.graphics.ImageDecoder
+import android.net.Uri
 import android.os.Build
 import android.provider.MediaStore
 import android.util.Log
@@ -35,15 +37,11 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavHostController
 import com.degref.variocard.components.SharedViewModel
+import java.io.File
 
 @Composable
 fun CardDetailScreen(navController: NavHostController, viewModel: SharedViewModel) {
     val selectedCard = viewModel.selectedCard.value
-
-    var bitmap = remember {
-        mutableStateOf<Bitmap?>(null)
-    }
-    var context = LocalContext.current
 
     if (selectedCard != null) {
         Column (
@@ -61,28 +59,10 @@ fun CardDetailScreen(navController: NavHostController, viewModel: SharedViewMode
 
             Spacer(modifier = Modifier.padding(16.dp))
 
-            selectedCard.image?.let {
-                viewModel.setValueImage(it)
-                if (Build.VERSION.SDK_INT < 28) {
-                    bitmap.value = MediaStore.Images
-                        .Media.getBitmap(context.contentResolver, it)
-                } else {
-                    val source = ImageDecoder.createSource(context.contentResolver, it)
-                    bitmap.value = ImageDecoder.decodeBitmap(source)
-                }
-
-                bitmap.value?.let { btm ->
-                    Image(
-                        bitmap = btm.asImageBitmap(),
-                        contentDescription = null,
-                        modifier = Modifier
-                            .size(80.dp)
-                            .align(Alignment.CenterHorizontally)
-                    )
-                }
+            if (selectedCard.image != "") {
+                loadBitmapFromFile(selectedCard.image)
+                Spacer(modifier = Modifier.padding(16.dp))
             }
-
-            Spacer(modifier = Modifier.padding(16.dp))
 
             Box(
                 modifier = Modifier
@@ -142,9 +122,8 @@ fun CardDetailScreen(navController: NavHostController, viewModel: SharedViewMode
                         Text(selectedCard.company)
                     }
                 }
+                Spacer(modifier = Modifier.padding(16.dp))
             }
-
-            Spacer(modifier = Modifier.padding(16.dp))
 
             if (selectedCard.additionalInfo.isNotBlank()) {
                 Box(
@@ -159,22 +138,43 @@ fun CardDetailScreen(navController: NavHostController, viewModel: SharedViewMode
                         Text(selectedCard.additionalInfo)
                     }
                 }
+                Spacer(modifier = Modifier.padding(16.dp))
             }
 
-            Spacer(modifier = Modifier.padding(16.dp))
-
-            Button(
-                onClick = {
-                    navController.navigate("addCard")
-                },
-                modifier = Modifier
-                    .align(Alignment.End)
-            ) {
-                Icon(imageVector = Icons.Default.Edit, contentDescription = null)
-                Spacer(modifier = Modifier.width(8.dp))
-                Text("Edit")
+            if (viewModel.listDestination.value != "all") {
+                Button(
+                    onClick = {
+                        Log.d("cardSelected", selectedCard.toString())
+                        navController.navigate("addCard")
+                    },
+                    modifier = Modifier
+                        .align(Alignment.End)
+                ) {
+                    Icon(imageVector = Icons.Default.Edit, contentDescription = null)
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text("Edit")
+                }
             }
         }
 
+    }
+}
+
+@Composable
+private fun loadBitmapFromFile(filePath: String) {
+    val file = File(filePath)
+    if (file.exists()) {
+        var bitmap: Bitmap? = null
+        bitmap = BitmapFactory.decodeFile(file.absolutePath)
+        if (bitmap != null) {
+            Image(
+                bitmap = bitmap.asImageBitmap(),
+                contentDescription = null,
+                modifier = Modifier
+                    .size(80.dp)
+            )
+        }
+    } else {
+        Log.d("YOBAMA", "image file doesn't exists")
     }
 }

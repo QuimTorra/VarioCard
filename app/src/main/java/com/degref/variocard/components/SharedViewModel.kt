@@ -29,8 +29,8 @@ class SharedViewModel(
     lateinit var wifiDirectReceiver: BroadcastReceiver
 
     var listAllCards: MutableList<Card> = mutableListOf(
-        Card(1, "Laura Chavarria Solé", "609007385", "laura.chavarria@estudiantat.upc.edu", "FIB", "", null),
-        Card(2,"John Doe", "123456789", "john.doe@example.com", "Company ABC", "", null)
+        /*Card(1, "Laura Chavarria Solé", "609007385", "laura.chavarria@estudiantat.upc.edu", "FIB", "", null),
+        Card(2,"John Doe", "123456789", "john.doe@example.com", "Company ABC", "", null)*/
     )
 
     fun activateReader(){

@@ -1,11 +1,14 @@
 package com.degref.variocard.screens
 
-import addCard
+import android.content.Context
 import android.graphics.Bitmap
+import android.graphics.BitmapFactory
 import android.graphics.ImageDecoder
 import android.net.Uri
 import android.os.Build
+import android.os.Environment
 import android.provider.MediaStore
+import android.util.Log
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.Image
@@ -19,7 +22,6 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.Send
@@ -38,16 +40,23 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
-import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavHostController
 import com.degref.variocard.components.SharedViewModel
 import com.degref.variocard.data.Card
+import java.io.File
+import java.io.FileOutputStream
+import java.io.IOException
+
+//var context: Context = TODO()
+var bitmap: Bitmap? = null
 
 @Composable
 fun AddCardScreen(
-    navController: NavHostController, viewModel: SharedViewModel
+    navController: NavHostController, viewModel: SharedViewModel, context: Context
 ) {
+    val context = LocalContext.current
     var card = viewModel.selectedCard.value
+    card?.let { Log.d("cardSelected", it.image) }
 
     var id by remember { mutableStateOf(card?.id ?: 1) }
     var name by remember { mutableStateOf(card?.name ?: "") }
@@ -55,7 +64,7 @@ fun AddCardScreen(
     var email by remember { mutableStateOf(card?.email ?: "") }
     var company by remember { mutableStateOf(card?.company ?: "") }
     var additionalInfo by remember { mutableStateOf(card?.additionalInfo ?: "") }
-    var image by remember { mutableStateOf(card?.image ?: null) }
+    var image by remember { mutableStateOf(card?.image ?: "") }
 
     var formValidated by remember { mutableStateOf(false) }
 
@@ -74,7 +83,10 @@ fun AddCardScreen(
                 .padding(16.dp)
         )
 
-        image = PickImageFromGallery(image)
+        if (image == "") image = PickImageFromGallery(null, context)
+        else {
+            loadBitmapFromFile(image)
+        }
 
         OutlinedTextField(
             value = name,
@@ -137,12 +149,16 @@ fun AddCardScreen(
 
                   if (formCompleted) {
                       if (viewModel.listDestination.value != "all") {
-                          addCard(Card(id, name, phone, email, company, additionalInfo, image))
+                          var filePath = bitmap?.let { saveImageToStorage(context, it, image) }
+                          if (filePath != null) {
+                              Log.d("YOBAMA", filePath)
+                              addMyCardToStorage(Card(id, name, phone, email, company, additionalInfo, filePath), context)
+                          }
+                          else {
+                              Log.d("YOBAMA", "FILEpATH IS null")
+                              addMyCardToStorage(Card(id, name, phone, email, company, additionalInfo, ""), context)
+                          }
                           navController.navigate("myCards")
-                      }
-                      else {
-                          editCard(Card(id, name, phone, email, company, additionalInfo, image), viewModel)
-                          navController.navigate("list")
                       }
 
                   }
@@ -163,14 +179,11 @@ fun formIsCompleted(name: String, phone: String, email: String): Boolean {
 }
 
 @Composable
-fun PickImageFromGallery(image: Uri?): Uri? {
+fun PickImageFromGallery(image: Uri?, context: Context): String {
     var imageUri by remember {
         mutableStateOf<Uri?>(image)
     }
-    var context = LocalContext.current
-    var bitmap = remember {
-        mutableStateOf<Bitmap?>(null)
-    }
+
     var launcher =  rememberLauncherForActivityResult(contract = ActivityResultContracts.GetContent()) {
         uri: Uri? -> imageUri = uri
     }
@@ -181,16 +194,15 @@ fun PickImageFromGallery(image: Uri?): Uri? {
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
 
-        imageUri?.let {
-            if (Build.VERSION.SDK_INT < 28) {
-                bitmap.value = MediaStore.Images
-                    .Media.getBitmap(context.contentResolver, it)
+        imageUri?.let { uri ->
+            bitmap = if (Build.VERSION.SDK_INT < 28) {
+                MediaStore.Images.Media.getBitmap(context.contentResolver, uri)
             } else {
-                val source = ImageDecoder.createSource(context.contentResolver, it)
-                bitmap.value = ImageDecoder.decodeBitmap(source)
+                val source = ImageDecoder.createSource(context.contentResolver, uri)
+                ImageDecoder.decodeBitmap(source)
             }
 
-            bitmap.value?.let { btm ->
+            bitmap?.let { btm ->
                 Image(
                     bitmap = btm.asImageBitmap(),
                     contentDescription = null,
@@ -208,5 +220,54 @@ fun PickImageFromGallery(image: Uri?): Uri? {
         }
     }
 
-    return imageUri
+    return imageUri?.toString() ?: ""
+}
+
+fun saveImageToStorage(context: Context, bitmap: Bitmap, fileName: String): String? {
+    val name = "${System.currentTimeMillis()}.jpg"
+    val directory = File(context.getExternalFilesDir(Environment.DIRECTORY_PICTURES), "MyAppImages")
+
+    if (!directory.exists()) {
+        directory.mkdirs()
+    }
+
+    val file = File(directory, name)
+
+    if (!file.exists()) {
+        file.createNewFile()
+    }
+
+    try {
+        val fileOutputStream = FileOutputStream(file)
+
+        bitmap.compress(Bitmap.CompressFormat.JPEG, 100, fileOutputStream)
+
+        fileOutputStream.flush()
+        fileOutputStream.close()
+
+        return file.absolutePath
+    } catch (e: IOException) {
+        e.printStackTrace()
+        Log.d("errorsaveimage", "error")
+        return null
+    }
+}
+
+@Composable
+private fun loadBitmapFromFile(filePath: String) {
+    val file = File(filePath)
+    if (file.exists()) {
+        var bitmap: Bitmap? = null
+        bitmap = BitmapFactory.decodeFile(file.absolutePath)
+        if (bitmap != null) {
+            Image(
+                bitmap = bitmap.asImageBitmap(),
+                contentDescription = null,
+                modifier = Modifier
+                    .size(80.dp)
+            )
+        }
+    } else {
+        Log.d("YOBAMA", "image file doesn't exists")
+    }
 }

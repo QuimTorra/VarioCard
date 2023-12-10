@@ -1,11 +1,13 @@
 package com.degref.variocard.components
 
+import android.content.Context
 import android.graphics.Bitmap
 import android.graphics.ImageDecoder
 import android.os.Build
 import android.provider.MediaStore
 import android.util.Log
 import androidx.annotation.RequiresApi
+import android.graphics.BitmapFactory
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Column
@@ -15,7 +17,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Send
-import androidx.compose.material.icons.filled.Share
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
@@ -35,14 +36,11 @@ import androidx.navigation.NavController
 import com.degref.variocard.data.Card
 import com.degref.variocard.data.Serializer
 
+import java.io.File
 
 @RequiresApi(Build.VERSION_CODES.TIRAMISU)
 @Composable
 fun CardListItem(card: Card, navController: NavController, viewModel: SharedViewModel) {
-    var bitmap = remember {
-        mutableStateOf<Bitmap?>(null)
-    }
-    var context = LocalContext.current
     Surface(
         modifier = Modifier
             .fillMaxWidth()
@@ -63,23 +61,8 @@ fun CardListItem(card: Card, navController: NavController, viewModel: SharedView
                 modifier = Modifier
                     .fillMaxWidth(0.9f)
             ) {
-                card.image?.let {
-                    if (Build.VERSION.SDK_INT < 28) {
-                        bitmap.value = MediaStore.Images
-                            .Media.getBitmap(context.contentResolver, it)
-                    } else {
-                        val source = ImageDecoder.createSource(context.contentResolver, it)
-                        bitmap.value = ImageDecoder.decodeBitmap(source)
-                    }
-
-                    bitmap.value?.let { btm ->
-                        Image(
-                            bitmap = btm.asImageBitmap(),
-                            contentDescription = null,
-                            modifier = Modifier
-                                .size(80.dp)
-                        )
-                    }
+                if (card.image != "") {
+                    loadBitmapFromFile(card.image)
                 }
                 Column(
                     modifier = Modifier
@@ -106,6 +89,26 @@ fun CardListItem(card: Card, navController: NavController, viewModel: SharedView
                         viewModel.activateSender(Serializer().cardToJson(card))
                     }
             )
+
         }
+    }
+}
+
+@Composable
+private fun loadBitmapFromFile(filePath: String) {
+    val file = File(filePath)
+    if (file.exists()) {
+        var bitmap: Bitmap? = null
+        bitmap = BitmapFactory.decodeFile(file.absolutePath)
+        if (bitmap != null) {
+            Image(
+                bitmap = bitmap.asImageBitmap(),
+                contentDescription = null,
+                modifier = Modifier
+                    .size(80.dp)
+            )
+        }
+    } else {
+        Log.d("YOBAMA", "image file doesn't exists")
     }
 }
