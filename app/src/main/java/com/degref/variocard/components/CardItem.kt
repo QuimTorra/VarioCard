@@ -4,6 +4,7 @@ import android.content.Context
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.util.Log
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Column
@@ -30,6 +31,12 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
 import com.degref.variocard.data.Card
+import com.degref.variocard.ui.theme.Blue100
+import com.degref.variocard.ui.theme.Blue200
+import com.degref.variocard.ui.theme.Blue50
+import com.degref.variocard.ui.theme.Blue500
+import com.degref.variocard.ui.theme.Blue800
+import com.degref.variocard.ui.theme.Blue900
 import java.io.File
 
 @Composable
@@ -42,7 +49,8 @@ fun CardListItem(card: Card, navController: NavController, viewModel: SharedView
                 navController.navigate("cardDetail")
             }),
         shape = MaterialTheme.shapes.medium, // Use a shape that doesn't clip the background
-        color = Color.Gray,
+        color = Blue50,
+        border = BorderStroke(2.dp, Blue900)
     ) {
         Row(
             modifier = Modifier

@@ -26,6 +26,7 @@ import androidx.navigation.NavHostController
 import com.degref.variocard.components.ListCards
 import com.degref.variocard.components.SharedViewModel
 import com.degref.variocard.data.Card
+import com.degref.variocard.ui.theme.Blue900
 import com.google.common.reflect.TypeToken
 import com.google.gson.Gson
 import java.io.File
@@ -49,7 +50,7 @@ fun ListScreen(navController: NavHostController, viewModel: SharedViewModel, res
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .background(Color.DarkGray),
+                    .background(Blue900),
                 contentAlignment = Alignment.CenterStart
             ) {
                 Text(

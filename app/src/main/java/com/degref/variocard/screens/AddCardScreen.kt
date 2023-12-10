@@ -25,6 +25,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.Send
 import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
@@ -42,6 +43,7 @@ import androidx.compose.ui.unit.dp
 import androidx.navigation.NavHostController
 import com.degref.variocard.components.SharedViewModel
 import com.degref.variocard.data.Card
+import com.degref.variocard.ui.theme.Blue900
 import java.io.File
 import java.io.FileOutputStream
 import java.io.IOException
@@ -159,6 +161,7 @@ fun AddCardScreen(
 
                   }
             },
+            colors = ButtonDefaults.buttonColors(Blue900),
             modifier = Modifier
                 .padding(8.dp)
                 .align(Alignment.End)
@@ -199,16 +202,19 @@ fun PickImageFromGallery(image: String, context: Context): String {
             Image(
                 bitmap = bitmap!!.asImageBitmap(),
                 contentDescription = null,
-                modifier = Modifier.size(80.dp)
+                modifier = Modifier.size(120.dp)
             )
-            Spacer(modifier = Modifier.padding(16.dp))
+            Spacer(modifier = Modifier.padding(8.dp))
         }
 
         if (!imageChanged && image.isNotEmpty()) {
             bitmap = loadBitmapFromFile(image)
         }
 
-        Button(onClick = { launcher.launch("image/*") }) {
+        Button(
+            onClick = { launcher.launch("image/*") },
+            colors = ButtonDefaults.buttonColors(Blue900)
+        ) {
             Text(text = "Pick Image")
         }
     }

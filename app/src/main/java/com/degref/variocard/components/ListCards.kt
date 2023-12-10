@@ -20,7 +20,7 @@ fun ListCards(cards: List<Card>, navController: NavHostController, viewModel: Sh
     LazyColumn(
         modifier = Modifier
             .fillMaxSize()
-            .padding(16.dp)
+            .padding(8.dp)
     ) {
         items(cards) { card ->
             CardListItem(card = card, navController = navController, viewModel = viewModel)
