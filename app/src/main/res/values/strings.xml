@@ -1,3 +1,5 @@
 <resources>
     <string name="app_name">VarioCard</string>
+    <string name="servicedesc">APDU_SERVICE_NFC_HCE</string>
+    <string name="creditcard">CARD_HCE</string>
 </resources>
