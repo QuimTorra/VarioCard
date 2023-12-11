@@ -15,8 +15,12 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.annotation.RequiresApi
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.BottomNavigation
 import androidx.compose.material.BottomNavigationItem
 import androidx.compose.material.Icon
@@ -155,26 +159,27 @@ class MainActivity : ComponentActivity() {
                         onClick = { navController.navigate("myCards") }
                     )
                 }
+            },
+            content = {
+                NavHost(navController = navController, startDestination = "list") {
+                    var resources = resources
+                    composable("list") {
+                        viewModel.listDestination.value = "all"
+                        ListScreen(navController, viewModel, resources, context)
+                    }
+                    composable("myCards") {
+                        viewModel.listDestination.value = "myCards"
+                        MyCardsScreen(navController, viewModel, context)
+                    }
+                    composable("addCard") {
+                        AddCardScreen(navController, viewModel, context)
+                    }
+                    composable("cardDetail") {
+                        CardDetailScreen(navController, viewModel)
+                    }
+                }
             }
-        ) {
-            NavHost(navController = navController, startDestination = "list") {
-                var resources = resources
-                composable("list") {
-                    viewModel.listDestination.value = "all"
-                    ListScreen(navController, viewModel, resources, context)
-                }
-                composable("myCards") {
-                    viewModel.listDestination.value = "myCards"
-                    MyCardsScreen(navController, viewModel, context)
-                }
-                composable("addCard") {
-                    AddCardScreen(navController, viewModel, context)
-                }
-                composable("cardDetail") {
-                    CardDetailScreen(navController, viewModel)
-                }
-            }
-        }
+        )
         /* Column(
             modifier = Modifier
                 .fillMaxSize()

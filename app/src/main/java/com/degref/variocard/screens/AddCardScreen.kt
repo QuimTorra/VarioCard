@@ -12,15 +12,23 @@ import android.util.Log
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.Image
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.Orientation
+import androidx.compose.foundation.gestures.rememberScrollableState
+import androidx.compose.foundation.gestures.scrollable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.Send
@@ -72,6 +80,7 @@ fun AddCardScreen(
     Column(
         modifier = Modifier
             .fillMaxSize()
+            .verticalScroll(rememberScrollState())
     ) {
         Icon(
             imageVector = Icons.Default.ArrowBack,
@@ -135,7 +144,7 @@ fun AddCardScreen(
                 additionalInfo = it
             },
             label = { Text("Additional information") },
-            maxLines = 5,
+            maxLines = 10,
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(8.dp)
@@ -168,6 +177,8 @@ fun AddCardScreen(
             Spacer(modifier = Modifier.width(8.dp))
             Text("Send")
         }
+
+        Spacer(modifier = Modifier.height(56.dp))
     }
 }
 

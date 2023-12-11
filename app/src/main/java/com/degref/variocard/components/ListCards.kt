@@ -7,6 +7,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.runtime.Composable
@@ -22,9 +23,13 @@ fun ListCards(cards: List<Card>, navController: NavHostController, viewModel: Sh
             .fillMaxSize()
             .padding(8.dp)
     ) {
-        items(cards) { card ->
+        itemsIndexed(cards) { index, card ->
             CardListItem(card = card, navController = navController, viewModel = viewModel)
             Spacer(modifier = Modifier.height(8.dp))
+
+            if (index < cards.size - 1) {
+                Spacer(modifier = Modifier.height(56.dp))
+            }
         }
     }
 }
