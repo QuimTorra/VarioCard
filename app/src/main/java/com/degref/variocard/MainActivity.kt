@@ -16,7 +16,12 @@ import androidx.activity.compose.setContent
 import androidx.activity.viewModels
 import androidx.annotation.RequiresApi
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.BottomNavigation
 import androidx.compose.material.BottomNavigationItem
 import androidx.compose.material.Icon
@@ -33,6 +38,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.unit.dp
 import androidx.lifecycle.lifecycleScope
 import com.degref.variocard.ui.theme.VarioCardTheme
 import kotlinx.coroutines.launch
@@ -47,6 +53,12 @@ import com.degref.variocard.data.Serializer
 import com.degref.variocard.screens.AddCardScreen
 import com.degref.variocard.screens.CardDetailScreen
 import com.degref.variocard.screens.ListScreen
+import com.degref.variocard.ui.theme.Blue800
+import com.degref.variocard.ui.theme.Blue900
+import com.degref.variocard.ui.theme.BlueA700
+import com.degref.variocard.ui.theme.DarkBlue
+import com.degref.variocard.ui.theme.Purple40
+import com.degref.variocard.ui.theme.Purple80
 
 
 class MainActivity : ComponentActivity() {
@@ -143,9 +155,8 @@ class MainActivity : ComponentActivity() {
     @Composable
     fun MainScreen(navController: NavHostController, viewModel: SharedViewModel) {
         Scaffold(
-            Modifier.background(Color.DarkGray),
             bottomBar = {
-                BottomNavigation {
+                BottomNavigation(backgroundColor = Blue900, contentColor = Color.White) {
                     BottomNavigationItem(
                         icon = {
                             Icon(imageVector = Icons.Default.List, contentDescription = "List")
@@ -165,26 +176,27 @@ class MainActivity : ComponentActivity() {
                         onClick = { navController.navigate("myCards") }
                     )
                 }
+            },
+            content = {
+                NavHost(navController = navController, startDestination = "list") {
+                    var resources = resources
+                    composable("list") {
+                        viewModel.listDestination.value = "all"
+                        ListScreen(navController, viewModel, resources, context)
+                    }
+                    composable("myCards") {
+                        viewModel.listDestination.value = "myCards"
+                        MyCardsScreen(navController, viewModel, context)
+                    }
+                    composable("addCard") {
+                        AddCardScreen(navController, viewModel, context)
+                    }
+                    composable("cardDetail") {
+                        CardDetailScreen(navController, viewModel)
+                    }
+                }
             }
-        ) {
-            NavHost(navController = navController, startDestination = "list") {
-                var resources = resources
-                composable("list") {
-                    viewModel.listDestination.value = "all"
-                    ListScreen(navController, viewModel, resources, context)
-                }
-                composable("myCards") {
-                    viewModel.listDestination.value = "myCards"
-                    MyCardsScreen(navController, viewModel, context)
-                }
-                composable("addCard") {
-                    AddCardScreen(navController, viewModel, context)
-                }
-                composable("cardDetail") {
-                    CardDetailScreen(navController, viewModel)
-                }
-            }
-        }
+        )
         /* Column(
             modifier = Modifier
                 .fillMaxSize()

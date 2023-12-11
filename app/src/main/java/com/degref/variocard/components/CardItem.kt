@@ -8,6 +8,7 @@ import android.provider.MediaStore
 import android.util.Log
 import androidx.annotation.RequiresApi
 import android.graphics.BitmapFactory
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Column
@@ -35,7 +36,12 @@ import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
 import com.degref.variocard.data.Card
 import com.degref.variocard.data.Serializer
-
+import com.degref.variocard.ui.theme.Blue100
+import com.degref.variocard.ui.theme.Blue200
+import com.degref.variocard.ui.theme.Blue50
+import com.degref.variocard.ui.theme.Blue500
+import com.degref.variocard.ui.theme.Blue800
+import com.degref.variocard.ui.theme.Blue900
 import java.io.File
 
 @RequiresApi(Build.VERSION_CODES.TIRAMISU)
@@ -49,7 +55,8 @@ fun CardListItem(card: Card, navController: NavController, viewModel: SharedView
                 navController.navigate("cardDetail")
             }),
         shape = MaterialTheme.shapes.medium, // Use a shape that doesn't clip the background
-        color = Color.Gray,
+        color = Blue50,
+        border = BorderStroke(2.dp, Blue900)
     ) {
         Row(
             modifier = Modifier
@@ -110,6 +117,6 @@ private fun loadBitmapFromFile(filePath: String) {
             )
         }
     } else {
-        Log.d("YOBAMA", "image file doesn't exists")
+        Log.d("Image not exists", "Image file doesn't exist")
     }
 }

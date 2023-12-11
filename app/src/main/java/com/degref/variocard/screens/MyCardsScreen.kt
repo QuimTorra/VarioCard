@@ -26,6 +26,7 @@ import androidx.navigation.NavHostController
 import com.degref.variocard.components.ListCards
 import com.degref.variocard.components.SharedViewModel
 import com.degref.variocard.data.Card
+import com.degref.variocard.ui.theme.Blue900
 import com.google.common.reflect.TypeToken
 import com.google.gson.Gson
 import java.io.File
@@ -36,7 +37,6 @@ var myOwnCards: MutableList<Card> = mutableListOf()
 @Composable
 fun MyCardsScreen(navController: NavHostController, viewModel: SharedViewModel, context: Context) {
     myOwnCards = getMyCardsStorage(context)
-    Log.d("myOwnCards-list", myOwnCards.toString())
     Surface(
         modifier = Modifier.fillMaxSize(),
         color = MaterialTheme.colorScheme.background
@@ -56,7 +56,7 @@ fun TopBar(navController: NavHostController, viewModel: SharedViewModel) {
     Box(
         modifier = Modifier
             .fillMaxWidth()
-            .background(Color.DarkGray),
+            .background(Blue900),
         contentAlignment = Alignment.CenterStart
     ) {
         Text(
@@ -65,9 +65,7 @@ fun TopBar(navController: NavHostController, viewModel: SharedViewModel) {
             color = Color.White,
             modifier = Modifier.padding(16.dp)
         )
-        Log.d("myOwnCards", "abans icono +")
         if (myOwnCards.size < 1) {
-            Log.d("myOwnCards", "if icono +")
             Icon(
                 imageVector = Icons.Default.AddCircle,
                 contentDescription = null,
@@ -97,7 +95,6 @@ fun getMyCardsStorage(context: Context): MutableList<Card> {
 
     try {
         val content = file.readText()
-        Log.d("myOwnCards-content", content)
 
         if (content.isNotBlank()) {
             val gson = Gson()
@@ -107,7 +104,6 @@ fun getMyCardsStorage(context: Context): MutableList<Card> {
         return mutableListOf()
 
     } catch (e: Exception) {
-        Log.d("myOwnCards-error", "error")
         return mutableListOf()
     }
 
@@ -119,10 +115,8 @@ fun addMyCardToStorage(card: Card, context: Context) {
 
     val gson = Gson()
     val updatedJson = gson.toJson(currentCards)
-    Log.d("myOwnCards-add", updatedJson)
 
     val file = File(context.filesDir, "my_cards")
     FileOutputStream(file).use { it.write(updatedJson.toByteArray()) }
-    Log.d("myOwnCards-addend", "end")
 }
 

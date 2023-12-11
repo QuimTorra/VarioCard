@@ -26,6 +26,7 @@ import androidx.navigation.NavHostController
 import com.degref.variocard.components.ListCards
 import com.degref.variocard.components.SharedViewModel
 import com.degref.variocard.data.Card
+import com.degref.variocard.ui.theme.Blue900
 import com.google.common.reflect.TypeToken
 import com.google.gson.Gson
 import java.io.File
@@ -36,7 +37,6 @@ var listAllCards: MutableList<Card> = mutableListOf()
 @Composable
 fun ListScreen(navController: NavHostController, viewModel: SharedViewModel, resources: Resources, context: Context) {
     listAllCards = getListCardsStorage(context)
-    Log.d("YOBAMA", "listAllCards" + listAllCards.toString())
 
     Surface(
         modifier = Modifier.fillMaxSize(),
@@ -49,7 +49,7 @@ fun ListScreen(navController: NavHostController, viewModel: SharedViewModel, res
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .background(Color.DarkGray),
+                    .background(Blue900),
                 contentAlignment = Alignment.CenterStart
             ) {
                 Text(
@@ -88,7 +88,6 @@ fun getListCardsStorage(context: Context): MutableList<Card> {
 
     try {
         val content = file.readText()
-        Log.d("myOwnCards-content", content)
 
         if (content.isNotBlank()) {
             val gson = Gson()
@@ -98,7 +97,6 @@ fun getListCardsStorage(context: Context): MutableList<Card> {
         return mutableListOf()
 
     } catch (e: Exception) {
-        Log.d("myOwnCards-error", "error")
         return mutableListOf()
     }
 }

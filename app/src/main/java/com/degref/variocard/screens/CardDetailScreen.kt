@@ -7,23 +7,31 @@ import android.net.Uri
 import android.os.Build
 import android.provider.MediaStore
 import android.util.Log
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Send
 import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.mutableStateOf
@@ -37,6 +45,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavHostController
 import com.degref.variocard.components.SharedViewModel
+import com.degref.variocard.ui.theme.Blue50
+import com.degref.variocard.ui.theme.Blue900
 import java.io.File
 
 @Composable
@@ -45,7 +55,9 @@ fun CardDetailScreen(navController: NavHostController, viewModel: SharedViewMode
 
     if (selectedCard != null) {
         Column (
-            modifier = Modifier.padding(16.dp)
+            modifier = Modifier
+                .padding(16.dp)
+                .verticalScroll(rememberScrollState())
         ) {
             Icon(
                 imageVector = Icons.Default.ArrowBack,
@@ -57,7 +69,7 @@ fun CardDetailScreen(navController: NavHostController, viewModel: SharedViewMode
                     }
             )
 
-            Spacer(modifier = Modifier.padding(16.dp))
+            Spacer(modifier = Modifier.padding(8.dp))
 
             if (selectedCard.image != "") {
                 loadBitmapFromFile(selectedCard.image)
@@ -67,78 +79,78 @@ fun CardDetailScreen(navController: NavHostController, viewModel: SharedViewMode
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .background(Color.LightGray)
-                    .padding(8.dp)
+                    .background(Blue50)
+                    .border(2.dp, Blue900, shape = MaterialTheme.shapes.medium)
+                    .padding(12.dp)
             ) {
                 Column() {
-                    Text("Name", fontWeight = FontWeight.Bold)
-                    Spacer(modifier = Modifier.padding(8.dp))
+                    Text("NAME", fontWeight = FontWeight.Bold)
                     Text(selectedCard.name)
                 }
             }
 
-            Spacer(modifier = Modifier.padding(16.dp))
+            Spacer(modifier = Modifier.padding(8.dp))
 
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .background(Color.LightGray)
-                    .padding(8.dp)
+                    .background(Blue50)
+                    .border(2.dp, Blue900, shape = MaterialTheme.shapes.medium)
+                    .padding(12.dp)
             ) {
                 Column() {
-                    Text("Phone number", fontWeight = FontWeight.Bold)
-                    Spacer(modifier = Modifier.padding(8.dp))
+                    Text("PHONE", fontWeight = FontWeight.Bold)
                     Text(selectedCard.phone)
                 }
             }
 
-            Spacer(modifier = Modifier.padding(16.dp))
+            Spacer(modifier = Modifier.padding(8.dp))
 
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .background(Color.LightGray)
-                    .padding(8.dp)
+                    .background(Blue50)
+                    .border(2.dp, Blue900, shape = MaterialTheme.shapes.medium)
+                    .padding(12.dp)
             ) {
                 Column() {
-                    Text("Email", fontWeight = FontWeight.Bold)
-                    Spacer(modifier = Modifier.padding(8.dp))
+                    Text("EMAIL", fontWeight = FontWeight.Bold)
                     Text(selectedCard.email)
                 }
             }
 
-            Spacer(modifier = Modifier.padding(16.dp))
+            Spacer(modifier = Modifier.padding(8.dp))
 
             if (selectedCard.company.isNotBlank()) {
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .background(Color.LightGray)
-                        .padding(8.dp)
+                        .background(Blue50)
+                        .border(2.dp, Blue900, shape = MaterialTheme.shapes.medium)
+                        .padding(12.dp)
                 ) {
                     Column() {
-                        Text("Company", fontWeight = FontWeight.Bold)
-                        Spacer(modifier = Modifier.padding(8.dp))
+                        Text("COMPANY", fontWeight = FontWeight.Bold)
                         Text(selectedCard.company)
                     }
                 }
-                Spacer(modifier = Modifier.padding(16.dp))
+                Spacer(modifier = Modifier.padding(8.dp))
             }
 
             if (selectedCard.additionalInfo.isNotBlank()) {
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .background(Color.LightGray)
-                        .padding(8.dp)
+                        .background(Blue50)
+                        .border(2.dp, Blue900, shape = MaterialTheme.shapes.medium)
+                        .padding(12.dp)
                 ) {
                     Column() {
-                        Text("Additional information", fontWeight = FontWeight.Bold)
-                        Spacer(modifier = Modifier.padding(8.dp))
+                        Text("ADDITIONAL INFORMATION", fontWeight = FontWeight.Bold)
                         Text(selectedCard.additionalInfo)
                     }
                 }
-                Spacer(modifier = Modifier.padding(16.dp))
+                Spacer(modifier = Modifier.padding(8.dp))
             }
 
             if (viewModel.listDestination.value != "all") {
@@ -147,6 +159,7 @@ fun CardDetailScreen(navController: NavHostController, viewModel: SharedViewMode
                         Log.d("cardSelected", selectedCard.toString())
                         navController.navigate("addCard")
                     },
+                    colors = ButtonDefaults.buttonColors(Blue900),
                     modifier = Modifier
                         .align(Alignment.End)
                 ) {
@@ -155,6 +168,8 @@ fun CardDetailScreen(navController: NavHostController, viewModel: SharedViewMode
                     Text("Edit")
                 }
             }
+
+            Spacer(modifier = Modifier.height(56.dp))
         }
 
     }
@@ -167,12 +182,18 @@ private fun loadBitmapFromFile(filePath: String) {
         var bitmap: Bitmap? = null
         bitmap = BitmapFactory.decodeFile(file.absolutePath)
         if (bitmap != null) {
-            Image(
-                bitmap = bitmap.asImageBitmap(),
-                contentDescription = null,
-                modifier = Modifier
-                    .size(80.dp)
-            )
+            Column(
+                modifier = Modifier.fillMaxWidth(),
+                verticalArrangement = Arrangement.Center,
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                Image(
+                    bitmap = bitmap.asImageBitmap(),
+                    contentDescription = null,
+                    modifier = Modifier
+                        .size(120.dp)
+                )
+            }
         }
     } else {
         Log.d("YOBAMA", "image file doesn't exists")

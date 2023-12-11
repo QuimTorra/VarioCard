@@ -12,7 +12,12 @@ import android.util.Log
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.Image
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.Orientation
+import androidx.compose.foundation.gestures.rememberScrollableState
+import androidx.compose.foundation.gestures.scrollable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
@@ -22,10 +27,13 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.Send
 import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
@@ -43,12 +51,13 @@ import androidx.compose.ui.unit.dp
 import androidx.navigation.NavHostController
 import com.degref.variocard.components.SharedViewModel
 import com.degref.variocard.data.Card
+import com.degref.variocard.ui.theme.Blue900
 import java.io.File
 import java.io.FileOutputStream
 import java.io.IOException
 
-//var context: Context = TODO()
-var bitmap: Bitmap? = null
+var bitmap: Bitmap? by mutableStateOf(null)
+var imageChanged: Boolean = false
 
 @Composable
 fun AddCardScreen(
@@ -71,6 +80,7 @@ fun AddCardScreen(
     Column(
         modifier = Modifier
             .fillMaxSize()
+            .verticalScroll(rememberScrollState())
     ) {
         Icon(
             imageVector = Icons.Default.ArrowBack,
@@ -83,10 +93,7 @@ fun AddCardScreen(
                 .padding(16.dp)
         )
 
-        if (image == "") image = PickImageFromGallery(null, context)
-        else {
-            loadBitmapFromFile(image)
-        }
+        image = PickImageFromGallery(image, context)
 
         OutlinedTextField(
             value = name,
@@ -137,7 +144,7 @@ fun AddCardScreen(
                 additionalInfo = it
             },
             label = { Text("Additional information") },
-            maxLines = 5,
+            maxLines = 10,
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(8.dp)
@@ -149,13 +156,11 @@ fun AddCardScreen(
 
                   if (formCompleted) {
                       if (viewModel.listDestination.value != "all") {
-                          var filePath = bitmap?.let { saveImageToStorage(context, it, image) }
+                          var filePath = bitmap?.let { saveImageToStorage(context, it) }
                           if (filePath != null) {
-                              Log.d("YOBAMA", filePath)
                               addMyCardToStorage(Card(id, name, phone, email, company, additionalInfo, filePath), context)
                           }
                           else {
-                              Log.d("YOBAMA", "FILEpATH IS null")
                               addMyCardToStorage(Card(id, name, phone, email, company, additionalInfo, ""), context)
                           }
                           navController.navigate("myCards")
@@ -163,6 +168,7 @@ fun AddCardScreen(
 
                   }
             },
+            colors = ButtonDefaults.buttonColors(Blue900),
             modifier = Modifier
                 .padding(8.dp)
                 .align(Alignment.End)
@@ -171,6 +177,8 @@ fun AddCardScreen(
             Spacer(modifier = Modifier.width(8.dp))
             Text("Send")
         }
+
+        Spacer(modifier = Modifier.height(56.dp))
     }
 }
 
@@ -179,13 +187,18 @@ fun formIsCompleted(name: String, phone: String, email: String): Boolean {
 }
 
 @Composable
-fun PickImageFromGallery(image: Uri?, context: Context): String {
+fun PickImageFromGallery(image: String, context: Context): String {
     var imageUri by remember {
-        mutableStateOf<Uri?>(image)
+        mutableStateOf<Uri?>(null)
     }
 
     var launcher =  rememberLauncherForActivityResult(contract = ActivityResultContracts.GetContent()) {
-        uri: Uri? -> imageUri = uri
+        uri: Uri? ->
+            uri?.let {
+                imageUri = it
+                bitmap = getBitmapFromUri(it, context)
+                imageChanged = true
+            }
     }
 
     Column(
@@ -194,36 +207,54 @@ fun PickImageFromGallery(image: Uri?, context: Context): String {
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
 
-        imageUri?.let { uri ->
-            bitmap = if (Build.VERSION.SDK_INT < 28) {
-                MediaStore.Images.Media.getBitmap(context.contentResolver, uri)
-            } else {
-                val source = ImageDecoder.createSource(context.contentResolver, uri)
-                ImageDecoder.decodeBitmap(source)
-            }
-
-            bitmap?.let { btm ->
-                Image(
-                    bitmap = btm.asImageBitmap(),
-                    contentDescription = null,
-                    modifier = Modifier
-                        .size(170.dp)
-                        .padding(20.dp)
-                )
-            }
+        if (bitmap != null) {
+            Image(
+                bitmap = bitmap!!.asImageBitmap(),
+                contentDescription = null,
+                modifier = Modifier.size(120.dp)
+            )
+            Spacer(modifier = Modifier.padding(8.dp))
         }
 
-        Spacer(modifier = Modifier.height(12.dp))
+        if (!imageChanged && image.isNotEmpty()) {
+            bitmap = loadBitmapFromFile(image)
+        }
 
-        Button(onClick = { launcher.launch("image/*") }) {
+        Button(
+            onClick = { launcher.launch("image/*") },
+            colors = ButtonDefaults.buttonColors(Blue900)
+        ) {
             Text(text = "Pick Image")
         }
     }
 
-    return imageUri?.toString() ?: ""
+    if (imageChanged) return imageUri.toString()
+    else return image
 }
 
-fun saveImageToStorage(context: Context, bitmap: Bitmap, fileName: String): String? {
+private fun getBitmapFromUri(imageUri: Uri?, context: Context): Bitmap? {
+    imageUri?.let { uri ->
+        bitmap = if (Build.VERSION.SDK_INT < 28) {
+            MediaStore.Images.Media.getBitmap(context.contentResolver, uri)
+        } else {
+            val source = ImageDecoder.createSource(context.contentResolver, uri)
+            ImageDecoder.decodeBitmap(source)
+        }
+        return bitmap
+    }
+    return bitmap
+}
+
+private fun loadBitmapFromFile(filePath: String): Bitmap? {
+    var bitmap: Bitmap? = null
+    val file = File(filePath)
+    if (file.exists()) {
+        bitmap = BitmapFactory.decodeFile(file.absolutePath)
+    }
+    return bitmap
+}
+
+fun saveImageToStorage(context: Context, bitmap: Bitmap): String? {
     val name = "${System.currentTimeMillis()}.jpg"
     val directory = File(context.getExternalFilesDir(Environment.DIRECTORY_PICTURES), "MyAppImages")
 
@@ -248,26 +279,6 @@ fun saveImageToStorage(context: Context, bitmap: Bitmap, fileName: String): Stri
         return file.absolutePath
     } catch (e: IOException) {
         e.printStackTrace()
-        Log.d("errorsaveimage", "error")
         return null
-    }
-}
-
-@Composable
-private fun loadBitmapFromFile(filePath: String) {
-    val file = File(filePath)
-    if (file.exists()) {
-        var bitmap: Bitmap? = null
-        bitmap = BitmapFactory.decodeFile(file.absolutePath)
-        if (bitmap != null) {
-            Image(
-                bitmap = bitmap.asImageBitmap(),
-                contentDescription = null,
-                modifier = Modifier
-                    .size(80.dp)
-            )
-        }
-    } else {
-        Log.d("YOBAMA", "image file doesn't exists")
     }
 }
