@@ -59,6 +59,7 @@ class MainActivity : ComponentActivity() {
     private lateinit var wifiDirectReceiver: BroadcastReceiver
     private lateinit var intentFilter: IntentFilter
     lateinit var viewModel: SharedViewModel
+    var navController: NavHostController? = null
     val context: Context = this
 
 
@@ -113,6 +114,7 @@ class MainActivity : ComponentActivity() {
             var c = Serializer().jsonToCard(card)
             c.image = image
             viewModel.listAllCards.add(c)
+            navController!!.navigate("list")
         } catch (e: Exception){
             Log.d("MONDONGO", "error serializing card")
         }
@@ -131,8 +133,8 @@ class MainActivity : ComponentActivity() {
     @RequiresApi(Build.VERSION_CODES.TIRAMISU)
     @Composable
     fun MainScreenPreview() {
-        val navController = rememberNavController()
-        MainScreen(navController, viewModel)
+        navController = rememberNavController()
+        MainScreen(navController!!, viewModel)
     }
 
     @SuppressLint("UnusedMaterialScaffoldPaddingParameter")

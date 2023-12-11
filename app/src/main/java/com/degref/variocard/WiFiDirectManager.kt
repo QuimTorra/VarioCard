@@ -23,6 +23,8 @@ import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import java.io.BufferedInputStream
+import java.io.ByteArrayOutputStream
 import java.io.File
 import java.io.FileInputStream
 import java.io.IOException
@@ -295,29 +297,56 @@ class WiFiDirectManager(private val context: Context, private val activity: Main
                     Log.d("MONDONGO", "Setting card to null")
                     card = null
                 }
-                else Log.d("MONDONGO", "Received null, may be receiver or error")
+                else if(!activity.isSenderActive) { //case that isReceiver or card null
+                    val inputStream: InputStream = socket.getInputStream()
+                    val bufferedInputStream = BufferedInputStream(inputStream)
+                    val buffer = ByteArray(4096)
+                    var bytesRead: Int
 
-                val inputStream: InputStream = socket.getInputStream()
-                val buffer = ByteArray(4096)
-                var bytesRead: Int = -1
+                    val textData = StringBuilder()
+                    val imageBuffer = ByteArrayOutputStream()
 
-                val stringBuilder = StringBuilder()
-                while (inputStream.available() > 0 || bytesRead != -1) {
-                    bytesRead = inputStream.read(buffer)
-                    if (bytesRead != -1) {
-                        // Convert the received bytes to a String and append to the StringBuilder
-                        stringBuilder.append(String(buffer, 0, bytesRead))
+                    var latch = CountDownLatch(1)
+
+                    try {
+                        var asteriskFound = false
+
+                        do {
+                            bytesRead = bufferedInputStream.read(buffer)
+                            if (bytesRead != -1) {
+                                if (asteriskFound) {
+                                    imageBuffer.write(buffer, 0, bytesRead)
+                                } else {
+                                    // Check for the asterisk to separate text and image data
+                                    for (i in 0 until bytesRead) {
+                                        if (i + 3 < buffer.size && buffer[i] == '\r'.toByte() && buffer[i + 1] == '\n'.toByte() &&
+                                            buffer[i + 2] == '\r'.toByte() && buffer[i + 3] == '\n'.toByte()
+                                        ) {
+                                            asteriskFound = true
+                                            Log.d("MONDONGO", "FOUND at $i")
+                                            // Write the remaining bytes to the image buffer
+                                            imageBuffer.write(buffer, i + 4, bytesRead - (i + 4))
+                                            latch.countDown()
+                                            break
+                                        }
+                                        textData.append(buffer[i].toChar())
+                                    }
+
+                                    if (!asteriskFound) {
+                                        // If asterisk is not found, write all bytes to text data
+                                        textData.append(String(buffer, 0, bytesRead))
+                                    }
+                                }
+                            } else {
+                                latch.countDown()
+                            }
+                        } while (bytesRead != -1)
+                        inputStream.close()
+                        Log.d("MONDONGO", "Received null, may be receiver or error")
+                    } catch (e: Exception){
+                        Log.d("MONDONGO", "Problem receiving")
                     }
                 }
-
-                // The complete received data
-                val receivedData = stringBuilder.toString()
-
-                activity.showToast("Received message: $receivedData")
-                // Process the received data as needed
-                Log.d("MONDONGO", "Received data: $receivedData")
-
-                inputStream.close()
                 outputStream.close()
 
                 /**

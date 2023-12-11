@@ -29,9 +29,10 @@ class WiFiDirectReceiver(
                         manager.fs!!.start()
                         if(activity.isSenderActive && (manager.card != null)) {
                             var mes = manager.card!!
+                            Log.d("MONDONGO", "Message: $mes")
                             manager.fs!!.sendMessage(mes)
                             Log.d("MONDONGO", "Setting card to null")
-                            manager.card = null
+                            //manager.card = null
                         }
                         else Log.d("MONDONGO", "May be receiver or error")
                     }
