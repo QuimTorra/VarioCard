@@ -91,7 +91,6 @@ fun getListCardsStorage(context: Context): MutableList<Card> {
 
     try {
         val content = file.readText()
-        Log.d("myOwnCards-content", content)
 
         if (content.isNotBlank()) {
             val gson = Gson()
@@ -101,7 +100,6 @@ fun getListCardsStorage(context: Context): MutableList<Card> {
         return mutableListOf()
 
     } catch (e: Exception) {
-        Log.d("myOwnCards-error", "error")
         return mutableListOf()
     }
 }
