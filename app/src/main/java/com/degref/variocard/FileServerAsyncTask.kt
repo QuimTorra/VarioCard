@@ -61,23 +61,28 @@ class FileServerAsyncTask(
                         do {
                             bytesRead = bufferedInputStream.read(buffer)
                             if (bytesRead != -1) {
-                                // Check for the asterisk to separate text and image data
-                                for (i in 0 until bytesRead) {
-                                    if (i+3 < buffer.size && buffer[i] == '\r'.toByte() && buffer[i + 1] == '\n'.toByte() &&
-                                        buffer[i + 2] == '\r'.toByte() && buffer[i + 3] == '\n'.toByte()) {
-                                        asteriskFound = true
-                                        Log.d("MONDONGO","FOUND")
-                                        // Write the remaining bytes to the image buffer
-                                        imageBuffer.write(buffer, i + 4, bytesRead - (i + 4))
-                                        latch.countDown()
-                                        break
-                                    }
-                                    textData.append(buffer[i].toChar())
+                                if(asteriskFound){
+                                    imageBuffer.write(buffer, 0, bytesRead)
                                 }
+                                else{
+                                    // Check for the asterisk to separate text and image data
+                                    for (i in 0 until bytesRead) {
+                                        if (i+3 < buffer.size && buffer[i] == '\r'.toByte() && buffer[i + 1] == '\n'.toByte() &&
+                                            buffer[i + 2] == '\r'.toByte() && buffer[i + 3] == '\n'.toByte()) {
+                                            asteriskFound = true
+                                            Log.d("MONDONGO","FOUND at $i")
+                                            // Write the remaining bytes to the image buffer
+                                            imageBuffer.write(buffer, i + 4, bytesRead - (i + 4))
+                                            latch.countDown()
+                                            break
+                                        }
+                                        textData.append(buffer[i].toChar())
+                                    }
 
-                                if (!asteriskFound) {
-                                    // If asterisk is not found, write all bytes to text data
-                                    textData.append(String(buffer, 0, bytesRead))
+                                    if (!asteriskFound) {
+                                        // If asterisk is not found, write all bytes to text data
+                                        textData.append(String(buffer, 0, bytesRead))
+                                    }
                                 }
                             }
                             else{
@@ -96,26 +101,23 @@ class FileServerAsyncTask(
                     val message = textData.toString()
                     // Convert the image data to a byte array
                     val image = imageBuffer.toByteArray()
-                    Log.d("MONDONGO", "img size: ${image.size}")
-                    //Log.d("MONDONGO","Text data: $textData")
-                   /* val message = receivedData.split('*')[0]
-                    Log.d("MONDONGO", "Message recieved: $message")
-                    val image = receivedData.split('*')[1]
-                    val imageBytes = Base64.decode(image, Base64.DEFAULT)*/
-                    Log.d("MONDONGO", "Here")
+                    var imageFilePath: String = ""
                    try {
-                        val directory = File(context.getExternalFilesDir(Environment.DIRECTORY_PICTURES), "MyAppImages")
+                        val directory = File(context.getExternalFilesDir(Environment.DIRECTORY_PICTURES), "Cards")
 
                         if (!directory.exists()) {
                             directory.mkdirs()
                         }
-                        val file = File(directory, name)
-
+                        val file = File(directory, "${System.currentTimeMillis()}.jpg")
+                       if (!file.exists()) {
+                           file.createNewFile()
+                       }
                         Log.d("MONDONGO", "here2")
                         val fileOutputStream = FileOutputStream(file)
 
                         fileOutputStream.write(image)
                         fileOutputStream.close()
+                        imageFilePath = file.absolutePath
                         Log.d("MONDONGO", "Image saved successfully to ${file.absolutePath}")
                     } catch (e: Exception) {
                         Log.e("MONDONGO", "Error saving image: ${e.message}")
@@ -124,7 +126,7 @@ class FileServerAsyncTask(
                     //Log.d("MONDONGO", "part 1: ${receivedData.split('*')[0]}")
                     //Log.d("MONDONGO", "part 2: ${receivedData.split('*')[1]}")
                     if(message != null){
-                        if(image != null) activity.tryToAddCard(message, "")
+                        if(image != null && imageFilePath != "") activity.tryToAddCard(message, imageFilePath)
                         else activity.tryToAddCard(message, "")
                     }
 

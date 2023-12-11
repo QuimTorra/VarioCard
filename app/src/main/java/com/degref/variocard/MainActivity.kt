@@ -109,20 +109,17 @@ class MainActivity : ComponentActivity() {
     }
 
     fun tryToAddCard(card: String, image: String){
-        //Log.d("MONDONGO", "Trying to serialize $card")
         try{
             var c = Serializer().jsonToCard(card)
+            c.image = image
             viewModel.listAllCards.add(c)
         } catch (e: Exception){
             Log.d("MONDONGO", "error serializing card")
-            //Log.d("MONDONGO", "Error serializing $card")
         }
-
         Log.d("MONDONGO", "WTF??")
     }
 
     override fun onDestroy() {
-        //viewModel.cancel()!!!
         lifecycleScope.launch {
             wifiDirectManager.closeWifiDirectGroup()
         }
