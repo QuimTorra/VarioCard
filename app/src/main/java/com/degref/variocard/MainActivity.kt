@@ -116,7 +116,7 @@ class MainActivity : ComponentActivity() {
             viewModel.listAllCards.add(c)
             navController!!.navigate("list")
         } catch (e: Exception){
-            Log.d("MONDONGO", "error serializing card")
+            Log.d("MONDONGO", "error serializing card, message: $card, image:$image")
         }
         Log.d("MONDONGO", "WTF??")
     }

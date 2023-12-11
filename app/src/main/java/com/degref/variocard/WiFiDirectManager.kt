@@ -10,6 +10,7 @@ import android.net.wifi.p2p.WifiP2pInfo
 import android.net.wifi.p2p.WifiP2pManager
 import android.os.AsyncTask
 import android.os.Build
+import android.os.Environment
 import android.os.Handler
 import android.util.Log
 import androidx.annotation.RequiresApi
@@ -27,6 +28,7 @@ import java.io.BufferedInputStream
 import java.io.ByteArrayOutputStream
 import java.io.File
 import java.io.FileInputStream
+import java.io.FileOutputStream
 import java.io.IOException
 import java.io.InputStream
 import java.io.OutputStream
@@ -302,7 +304,7 @@ class WiFiDirectManager(private val context: Context, private val activity: Main
                     val bufferedInputStream = BufferedInputStream(inputStream)
                     val buffer = ByteArray(4096)
                     var bytesRead: Int
-
+                    var bytesTotal: Int = 0
                     val textData = StringBuilder()
                     val imageBuffer = ByteArrayOutputStream()
 
@@ -312,40 +314,95 @@ class WiFiDirectManager(private val context: Context, private val activity: Main
                         var asteriskFound = false
 
                         do {
+                            Log.d("MONDONGO","Trying to read...")
                             bytesRead = bufferedInputStream.read(buffer)
+                            Log.d("MONDONGO","TotalBytes: $bytesTotal and $bytesRead")
+                            bytesTotal += bytesRead
                             if (bytesRead != -1) {
                                 if (asteriskFound) {
                                     imageBuffer.write(buffer, 0, bytesRead)
                                 } else {
                                     // Check for the asterisk to separate text and image data
                                     for (i in 0 until bytesRead) {
+                                        Log.d("MONDOGO", "Inside for")
                                         if (i + 3 < buffer.size && buffer[i] == '\r'.toByte() && buffer[i + 1] == '\n'.toByte() &&
                                             buffer[i + 2] == '\r'.toByte() && buffer[i + 3] == '\n'.toByte()
                                         ) {
                                             asteriskFound = true
                                             Log.d("MONDONGO", "FOUND at $i")
                                             // Write the remaining bytes to the image buffer
-                                            imageBuffer.write(buffer, i + 4, bytesRead - (i + 4))
+                                            imageBuffer.write(
+                                                buffer,
+                                                i + 4,
+                                                bytesRead - (i + 4)
+                                            )
                                             latch.countDown()
                                             break
                                         }
                                         textData.append(buffer[i].toChar())
                                     }
 
-                                    if (!asteriskFound) {
+                                    /*if (!asteriskFound) {
                                         // If asterisk is not found, write all bytes to text data
                                         textData.append(String(buffer, 0, bytesRead))
-                                    }
+                                    }*/
                                 }
                             } else {
+                                Log.d("MONDONGO","Here else")
                                 latch.countDown()
                             }
                         } while (bytesRead != -1)
-                        inputStream.close()
-                        Log.d("MONDONGO", "Received null, may be receiver or error")
-                    } catch (e: Exception){
-                        Log.d("MONDONGO", "Problem receiving")
+                        Log.d("MONDONGO", "Start to wait")
+                        latch.await()
+                        Log.d("MONDONGO", "Waiting")
+                    } catch (e: Exception) {
+                        Log.d("MONDONGO", "error")
+                        Log.d("MONDONGO", e.toString())
+                    } finally {
+                        socket.takeIf { it.isConnected }?.apply {
+                            close()
+                        }
+                        bufferedInputStream.close()
                     }
+
+                    val message = textData.toString()
+                    // Convert the image data to a byte array
+                    val image = imageBuffer.toByteArray()
+                    var imageFilePath: String = ""
+                    try {
+                        val directory = File(
+                            context.getExternalFilesDir(Environment.DIRECTORY_PICTURES),
+                            "Cards"
+                        )
+
+                        if (!directory.exists()) {
+                            directory.mkdirs()
+                        }
+                        val file = File(directory, "${System.currentTimeMillis()}.jpg")
+                        if (!file.exists()) {
+                            file.createNewFile()
+                        }
+                        Log.d("MONDONGO", "here2")
+                        val fileOutputStream = FileOutputStream(file)
+
+                        fileOutputStream.write(image)
+                        fileOutputStream.close()
+                        imageFilePath = file.absolutePath
+                        Log.d("MONDONGO", "Image saved successfully to ${file.absolutePath}")
+                    } catch (e: Exception) {
+                        Log.e("MONDONGO", "Error saving image: ${e.message}")
+                    }
+                    Log.d("MONDONGO", "textData: $message ...")
+                    if (message != null) {
+                        if (image != null && imageFilePath != "") activity.tryToAddCard(
+                            message,
+                            imageFilePath
+                        )
+                        else activity.tryToAddCard(message, "")
+                    }
+
+                    activity.showToast("Message has been sent")
+                    Log.d("MONDONGO", "End image reading??")
                 }
                 outputStream.close()
 
@@ -353,9 +410,6 @@ class WiFiDirectManager(private val context: Context, private val activity: Main
                  * Clean up any open sockets when done
                  * transferring or if an exception occurred.
                  */
-                socket.takeIf { it.isConnected }?.apply {
-                    close()
-                }
             } catch (ie: IOException){
                 Log.d("MONDONGO", "IO exception raised here: $ie")
             } catch (s: SocketException){

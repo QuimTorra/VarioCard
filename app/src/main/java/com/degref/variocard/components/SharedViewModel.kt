@@ -30,7 +30,7 @@ class SharedViewModel(
 
     var listAllCards: MutableList<Card> = mutableListOf(
         /*Card(1, "Laura Chavarria Solé", "609007385", "laura.chavarria@estudiantat.upc.edu", "FIB", "", null),
-        Card(2,"John Doe", "123456789", "john.doe@example.com", "Company ABC", "", null)*/
+        Card(2,"John Dactivaoe", "123456789", "john.doe@example.com", "Company ABC", "", null)*/
     )
 
     fun activateReader(){
@@ -52,6 +52,11 @@ class SharedViewModel(
             Log.d("MONDONGO", "Setting: ${wifiDirectManager.card}")
             wifiDirectManager.openWiFiDirect()
         }
+    }
+
+    fun setCard(){
+        Log.d("MONDONGO", "Setting card to null in viewmodel")
+        wifiDirectManager.card = null
     }
 
     fun setValueImage(path: String){
