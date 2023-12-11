@@ -106,6 +106,6 @@ private fun loadBitmapFromFile(filePath: String) {
             )
         }
     } else {
-        Log.d("YOBAMA", "image file doesn't exists")
+        Log.d("Image not exists", "Image file doesn't exist")
     }
 }

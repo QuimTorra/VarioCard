@@ -37,7 +37,6 @@ var listAllCards: MutableList<Card> = mutableListOf()
 @Composable
 fun ListScreen(navController: NavHostController, viewModel: SharedViewModel, resources: Resources, context: Context) {
     listAllCards = getListCardsStorage(context)
-    Log.d("YOBAMA", "listAllCards" + listAllCards.toString())
 
     Surface(
         modifier = Modifier.fillMaxSize(),

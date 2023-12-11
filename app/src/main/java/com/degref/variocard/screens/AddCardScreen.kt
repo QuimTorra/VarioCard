@@ -149,11 +149,9 @@ fun AddCardScreen(
                       if (viewModel.listDestination.value != "all") {
                           var filePath = bitmap?.let { saveImageToStorage(context, it) }
                           if (filePath != null) {
-                              Log.d("YOBAMA", filePath)
                               addMyCardToStorage(Card(id, name, phone, email, company, additionalInfo, filePath), context)
                           }
                           else {
-                              Log.d("YOBAMA", "FILEpATH IS null")
                               addMyCardToStorage(Card(id, name, phone, email, company, additionalInfo, ""), context)
                           }
                           navController.navigate("myCards")
