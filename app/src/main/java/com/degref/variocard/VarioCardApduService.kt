@@ -7,7 +7,6 @@ import android.nfc.NdefRecord
 import android.nfc.cardemulation.HostApduService
 import android.os.Bundle
 import android.util.Log
-import java.util.Arrays
 
 class VarioCardApduService : HostApduService() {
     private lateinit var mNdefRecordFile: ByteArray

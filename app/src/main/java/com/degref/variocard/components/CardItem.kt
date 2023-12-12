@@ -1,10 +1,7 @@
 package com.degref.variocard.components
 
-import android.content.Context
 import android.graphics.Bitmap
-import android.graphics.ImageDecoder
 import android.os.Build
-import android.provider.MediaStore
 import android.util.Log
 import androidx.annotation.RequiresApi
 import android.graphics.BitmapFactory
@@ -23,24 +20,16 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.asImageBitmap
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
 import com.degref.variocard.data.Card
 import com.degref.variocard.data.Serializer
-import com.degref.variocard.ui.theme.Blue100
-import com.degref.variocard.ui.theme.Blue200
 import com.degref.variocard.ui.theme.Blue50
-import com.degref.variocard.ui.theme.Blue500
-import com.degref.variocard.ui.theme.Blue800
 import com.degref.variocard.ui.theme.Blue900
 import java.io.File
 
@@ -69,20 +58,20 @@ fun CardListItem(card: Card, navController: NavController, viewModel: SharedView
                     .fillMaxWidth(0.9f)
             ) {
                 if (card.image != "") {
-                    loadBitmapFromFile(card.image)
+                    LoadBitmapFromFile(card.image)
                 }
                 Column(
                     modifier = Modifier
                         .padding(8.dp)
                 ) {
                     Text(
-                        text = "${card.name}",
+                        text = card.name,
                         fontWeight = FontWeight.Bold,
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis
                     )
-                    Text(text = "${card.phone}", maxLines = 1, overflow = TextOverflow.Ellipsis)
-                    Text(text = "${card.email}", maxLines = 1, overflow = TextOverflow.Ellipsis)
+                    Text(text = card.phone, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                    Text(text = card.email, maxLines = 1, overflow = TextOverflow.Ellipsis)
                 }
             }
             Icon(
@@ -92,7 +81,7 @@ fun CardListItem(card: Card, navController: NavController, viewModel: SharedView
                     .padding(end = 8.dp)
                     .align(Alignment.CenterVertically)
                     .clickable {
-                        Log.d("MONDONGO", Serializer().cardToJson(card))
+                        Log.d("VarioCard", Serializer().cardToJson(card))
                         if(card.image != "") viewModel.setValueImage(card.image)
                         viewModel.activateSender(Serializer().cardToJson(card))
                     }
@@ -103,11 +92,10 @@ fun CardListItem(card: Card, navController: NavController, viewModel: SharedView
 }
 
 @Composable
-private fun loadBitmapFromFile(filePath: String) {
+private fun LoadBitmapFromFile(filePath: String) {
     val file = File(filePath)
     if (file.exists()) {
-        var bitmap: Bitmap? = null
-        bitmap = BitmapFactory.decodeFile(file.absolutePath)
+        val bitmap: Bitmap? = BitmapFactory.decodeFile(file.absolutePath)
         if (bitmap != null) {
             Image(
                 bitmap = bitmap.asImageBitmap(),

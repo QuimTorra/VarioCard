@@ -12,12 +12,7 @@ import android.util.Log
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.Image
-import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.gestures.Orientation
-import androidx.compose.foundation.gestures.rememberScrollableState
-import androidx.compose.foundation.gestures.scrollable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
@@ -39,6 +34,7 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -61,13 +57,13 @@ var imageChanged: Boolean = false
 
 @Composable
 fun AddCardScreen(
-    navController: NavHostController, viewModel: SharedViewModel, context: Context
+    navController: NavHostController, viewModel: SharedViewModel
 ) {
     val context = LocalContext.current
-    var card = viewModel.selectedCard.value
+    val card = viewModel.selectedCard.value
     card?.let { Log.d("cardSelected", it.image) }
 
-    var id by remember { mutableStateOf(card?.id ?: 1) }
+    val id by remember { mutableIntStateOf(card?.id ?: 1) }
     var name by remember { mutableStateOf(card?.name ?: "") }
     var phone by remember { mutableStateOf(card?.phone ?: "") }
     var email by remember { mutableStateOf(card?.email ?: "") }
@@ -93,7 +89,7 @@ fun AddCardScreen(
                 .padding(16.dp)
         )
 
-        image = PickImageFromGallery(image, context)
+        image = pickImageFromGallery(image, context)
 
         OutlinedTextField(
             value = name,
@@ -151,12 +147,12 @@ fun AddCardScreen(
         )
         Button(
             onClick = {
-                  var formCompleted = formIsCompleted(name, phone, email)
+                  val formCompleted = formIsCompleted(name, phone, email)
                   formValidated = true
 
                   if (formCompleted) {
                       if (viewModel.listDestination.value != "all") {
-                          var filePath = bitmap?.let { saveImageToStorage(context, it) }
+                          val filePath = bitmap?.let { saveImageToStorage(context, it) }
                           if (filePath != null) {
                               addMyCardToStorage(Card(id, name, phone, email, company, additionalInfo, filePath), context)
                           }
@@ -187,12 +183,12 @@ fun formIsCompleted(name: String, phone: String, email: String): Boolean {
 }
 
 @Composable
-fun PickImageFromGallery(image: String, context: Context): String {
+fun pickImageFromGallery(image: String, context: Context): String {
     var imageUri by remember {
         mutableStateOf<Uri?>(null)
     }
 
-    var launcher =  rememberLauncherForActivityResult(contract = ActivityResultContracts.GetContent()) {
+    val launcher =  rememberLauncherForActivityResult(contract = ActivityResultContracts.GetContent()) {
         uri: Uri? ->
             uri?.let {
                 imageUri = it
@@ -228,10 +224,11 @@ fun PickImageFromGallery(image: String, context: Context): String {
         }
     }
 
-    if (imageChanged) return imageUri.toString()
-    else return image
+    return if (imageChanged) imageUri.toString()
+    else image
 }
 
+@Suppress("DEPRECATION")
 private fun getBitmapFromUri(imageUri: Uri?, context: Context): Bitmap? {
     imageUri?.let { uri ->
         bitmap = if (Build.VERSION.SDK_INT < 28) {
@@ -268,7 +265,7 @@ fun saveImageToStorage(context: Context, bitmap: Bitmap): String? {
         file.createNewFile()
     }
 
-    try {
+    return try {
         val fileOutputStream = FileOutputStream(file)
 
         bitmap.compress(Bitmap.CompressFormat.JPEG, 100, fileOutputStream)
@@ -276,9 +273,9 @@ fun saveImageToStorage(context: Context, bitmap: Bitmap): String? {
         fileOutputStream.flush()
         fileOutputStream.close()
 
-        return file.absolutePath
+        file.absolutePath
     } catch (e: IOException) {
         e.printStackTrace()
-        return null
+        null
     }
 }

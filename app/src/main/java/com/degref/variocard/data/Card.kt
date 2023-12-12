@@ -1,7 +1,5 @@
 package com.degref.variocard.data
 
-import android.net.Uri
-
 data class Card(
     var id: Int,
     var name: String,

@@ -2,7 +2,8 @@ package com.degref.variocard.screens
 
 import android.annotation.SuppressLint
 import android.content.Context
-import android.util.Log
+import android.os.Build
+import androidx.annotation.RequiresApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
@@ -34,6 +35,7 @@ import java.io.FileOutputStream
 
 var myOwnCards: MutableList<Card> = mutableListOf()
 
+@RequiresApi(Build.VERSION_CODES.TIRAMISU)
 @Composable
 fun MyCardsScreen(navController: NavHostController, viewModel: SharedViewModel, context: Context) {
     myOwnCards = getMyCardsStorage(context)

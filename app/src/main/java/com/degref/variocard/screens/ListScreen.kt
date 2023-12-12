@@ -1,8 +1,8 @@
 package com.degref.variocard.screens
 
 import android.content.Context
-import android.content.res.Resources
-import android.util.Log
+import android.os.Build
+import androidx.annotation.RequiresApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
@@ -34,8 +34,9 @@ import java.io.FileOutputStream
 
 var listAllCards: MutableList<Card> = mutableListOf()
 
+@RequiresApi(Build.VERSION_CODES.TIRAMISU)
 @Composable
-fun ListScreen(navController: NavHostController, viewModel: SharedViewModel, resources: Resources, context: Context) {
+fun ListScreen(navController: NavHostController, viewModel: SharedViewModel, context: Context) {
     listAllCards = getListCardsStorage(context)
 
     Surface(
