@@ -158,7 +158,7 @@ class MainActivity : ComponentActivity() {
             },
             content = {
                 NavHost(navController = navController, startDestination = "list") {
-                    val resources = resources
+                    resources
                     composable("list") {
                         viewModel.listDestination.value = "all"
                         ListScreen(navController, viewModel, context)
