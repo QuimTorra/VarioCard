@@ -58,17 +58,6 @@ fun ListScreen(navController: NavHostController, viewModel: SharedViewModel, con
                     color = Color.White,
                     modifier = Modifier.padding(16.dp)
                 )
-                Icon(
-                    imageVector = Icons.Default.Call,
-                    contentDescription = null,
-                    tint = Color.White,
-                    modifier = Modifier
-                        .clickable {
-                            viewModel.activateReader()
-                        }
-                        .padding(16.dp)
-                        .align(Alignment.CenterEnd)
-                )
             }
             ListCards(viewModel.listAllCards, navController, viewModel)
         }
