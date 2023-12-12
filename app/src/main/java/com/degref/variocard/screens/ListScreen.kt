@@ -32,12 +32,11 @@ import com.google.gson.Gson
 import java.io.File
 import java.io.FileOutputStream
 
-var listAllCards: MutableList<Card> = mutableListOf()
 
 @RequiresApi(Build.VERSION_CODES.TIRAMISU)
 @Composable
 fun ListScreen(navController: NavHostController, viewModel: SharedViewModel, context: Context) {
-    listAllCards = getListCardsStorage(context)
+    viewModel.listAllCards = getListCardsStorage(context)
 
     Surface(
         modifier = Modifier.fillMaxSize(),
@@ -58,17 +57,6 @@ fun ListScreen(navController: NavHostController, viewModel: SharedViewModel, con
                     fontSize = 24.sp,
                     color = Color.White,
                     modifier = Modifier.padding(16.dp)
-                )
-                Icon(
-                    imageVector = Icons.Default.Call,
-                    contentDescription = null,
-                    tint = Color.White,
-                    modifier = Modifier
-                        .clickable {
-                            viewModel.activateReader()
-                        }
-                        .padding(16.dp)
-                        .align(Alignment.CenterEnd)
                 )
             }
             ListCards(viewModel.listAllCards, navController, viewModel)
@@ -115,6 +103,7 @@ fun addCardToStorage(card: Card, context: Context) {
     FileOutputStream(file).use { it.write(updatedJson.toByteArray()) }
 }
 
+/*
 fun deleteCard(card: Card, context: Context) {
     val currentCards = getListCardsStorage(context)
 
@@ -130,4 +119,4 @@ fun deleteCard(card: Card, context: Context) {
 
         FileOutputStream(file).use { it.write(updatedJson.toByteArray()) }
     }
-}
+}*/

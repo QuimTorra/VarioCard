@@ -43,7 +43,10 @@ import com.degref.variocard.data.Serializer
 import com.degref.variocard.screens.AddCardScreen
 import com.degref.variocard.screens.CardDetailScreen
 import com.degref.variocard.screens.ListScreen
+import com.degref.variocard.screens.addCardToStorage
 import com.degref.variocard.ui.theme.Blue900
+import kotlinx.coroutines.GlobalScope
+import java.util.UUID
 
 
 class MainActivity : ComponentActivity() {
@@ -54,7 +57,7 @@ class MainActivity : ComponentActivity() {
     private lateinit var wifiDirectReceiver: BroadcastReceiver
     private lateinit var intentFilter: IntentFilter
     lateinit var viewModel: SharedViewModel
-    private var navController: NavHostController? = null
+    private lateinit var navController: NavHostController
     val context: Context = this
 
 
@@ -104,11 +107,14 @@ class MainActivity : ComponentActivity() {
 
     fun tryToAddCard(card: String, image: String){
         try{
-            val serializer = Serializer().jsonToCard(card)
-            serializer.image = image
-            viewModel.listAllCards.add(serializer)
-            navController!!.navigate("list")
+            val newCard = Serializer().jsonToCard(card)
+            newCard.image = image
+            newCard.id = UUID.randomUUID()
+            Log.d("VarioCard", "Card, serialized: ${newCard.toString()}")
+            addCardToStorage(newCard, context)
+            viewModel.listAllCards.add(newCard)
         } catch (e: Exception){
+            Log.d("VarioCard", e.toString())
             Log.d("VarioCard", "error serializing card, message: $card, image:$image")
         }
     }

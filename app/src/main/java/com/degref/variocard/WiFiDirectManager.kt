@@ -248,7 +248,9 @@ class WiFiDirectManager(private val context: Context, private val activity: Main
                     (InetSocketAddress(serverAddress, 8888)),
                     500
                 )
-                if (socket.isConnected) Log.d("VarioCard", "Socket is conneeeeeeected :)")
+                if (socket.isConnected) {
+                    Log.d("VarioCard", "Socket is conneeeeeeected :)")
+                }
                 Log.d("MyApp", "Server socket bound: ${socket.isBound}")
                 Log.d("VarioCard", "deviceAddress....")
 
@@ -256,6 +258,7 @@ class WiFiDirectManager(private val context: Context, private val activity: Main
                 Log.d("VarioCard", "isSenderActive: ${activity.isSenderActive}")
                 Log.d("VarioCard", "card: $card")
                 if(activity.isSenderActive && card != null) {
+                    activity.showToast("Ready to send")
                     outputStream.write(card!!.toByteArray())
                     outputStream.write("\r\n\r\n".toByteArray())
                     if(imageCard != null) {
@@ -276,6 +279,7 @@ class WiFiDirectManager(private val context: Context, private val activity: Main
                     card = null
                 }
                 else if(!activity.isSenderActive) { //case that isReceiver or card null
+                    activity.showToast("Ready to receive")
                     val inputStream: InputStream = socket.getInputStream()
                     val bufferedInputStream = BufferedInputStream(inputStream)
                     val buffer = ByteArray(4096)
@@ -365,6 +369,7 @@ class WiFiDirectManager(private val context: Context, private val activity: Main
                     }
                     Log.d("VarioCard", "textData: $message ...")
                     if (message != "") {
+                        activity.showToast("Adding card")
                         if (image != null && imageFilePath != "") activity.tryToAddCard(
                             message,
                             imageFilePath

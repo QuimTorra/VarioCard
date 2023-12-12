@@ -36,8 +36,8 @@ class FileServerAsyncTask(
                 if (!client.isClosed) Log.d("VarioCard", "Client not closed")
                 if (client.isConnected) {
                     Log.d("VarioCard", "Client connected")
-
                     if (!activity.isSenderActive) {
+                        activity.showToast("Ready to receive")
                         val inputStream: InputStream = client.getInputStream()
                         val bufferedInputStream = BufferedInputStream(inputStream)
                         val buffer = ByteArray(4096)
@@ -123,6 +123,7 @@ class FileServerAsyncTask(
                         }
 
                         if (message != "") {
+                            activity.showToast("Adding card")
                             if (image != null && imageFilePath != "") activity.tryToAddCard(
                                 message,
                                 imageFilePath
@@ -145,6 +146,7 @@ class FileServerAsyncTask(
                         Log.d("VarioCard", "End image reading??")
                         client.close()
                     } else {
+                        activity.showToast("Ready to send")
                         Log.d("VarioCard", "Sending...")
                         val outputStream = client.getOutputStream()
                         val card = activity.viewModel.getCard()

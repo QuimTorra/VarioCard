@@ -25,8 +25,7 @@ fun ListCards(cards: List<Card>, navController: NavHostController, viewModel: Sh
         itemsIndexed(cards) { index, card ->
             CardListItem(card = card, navController = navController, viewModel = viewModel)
             Spacer(modifier = Modifier.height(8.dp))
-
-            if (index < cards.size - 1) {
+            if (index == (cards.size - 1)) {
                 Spacer(modifier = Modifier.height(56.dp))
             }
         }

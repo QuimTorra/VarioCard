@@ -51,6 +51,7 @@ import com.degref.variocard.ui.theme.Blue900
 import java.io.File
 import java.io.FileOutputStream
 import java.io.IOException
+import java.util.UUID
 
 var bitmap: Bitmap? by mutableStateOf(null)
 var imageChanged: Boolean = false
@@ -63,7 +64,7 @@ fun AddCardScreen(
     val card = viewModel.selectedCard.value
     card?.let { Log.d("cardSelected", it.image) }
 
-    val id by remember { mutableIntStateOf(card?.id ?: 1) }
+    val id by remember { mutableStateOf(card?.id ?: UUID.randomUUID()) }
     var name by remember { mutableStateOf(card?.name ?: "") }
     var phone by remember { mutableStateOf(card?.phone ?: "") }
     var email by remember { mutableStateOf(card?.email ?: "") }
